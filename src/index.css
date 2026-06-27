@@ -576,8 +576,7 @@ html, body {
     height: 297mm !important;
     min-height: 297mm !important;
     max-height: 297mm !important;
-    padding: 10mm 15mm !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     box-shadow: none !important;
     page-break-inside: avoid !important;
     page-break-after: always !important;
@@ -587,8 +586,19 @@ html, body {
     border-radius: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
     box-sizing: border-box !important;
+  }
+  
+  .a4-page:last-of-type {
+    page-break-after: auto !important;
+  }
+  
+  #view-report .a4-page {
+    height: auto !important;
+    min-height: 297mm !important;
+    max-height: none !important;
+    page-break-inside: auto !important;
+    page-break-after: auto !important;
   }
   
   .a4-page.ai-report-page {
