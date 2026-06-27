@@ -872,12 +872,18 @@ export default function App() {
   }, [mergedData]);
 
   return (
-    <div className="grid-pattern flex flex-col min-h-screen relative z-10">
-      <div className="scanline" />
+    <div className="flex flex-col min-h-screen relative z-0 bg-[#0c1424]">
+      {/* Universal Faint Shipyard Background */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-15 pointer-events-none z-0" 
+        style={{ backgroundImage: "url('/yard.png')" }} 
+      />
+      <div className="grid-pattern flex flex-col min-h-screen relative z-10">
+        <div className="scanline" />
 
       {/* Toast Alert */}
       {toast && (
-        <div className="fixed top-6 right-6 z-[9999] bg-[#0c1424] border-l-4 border-[#0ea5e9] text-white py-3 px-6 rounded shadow-2xl animate-fade-in flex items-center gap-3 font-sans text-sm">
+        <div className="fixed top-6 right-6 z-[9999] bg-[#0c1424] border-l-4 border-[#0ea5e9] text-white py-3 px-6 rounded shadow-2xl animate-fade-in flex items-center gap-3 font-sans text-sm no-print">
           <AlertCircle className="w-5 h-5 text-[#0ea5e9]" />
           <span>{toast.message}</span>
         </div>
@@ -1088,8 +1094,8 @@ export default function App() {
                           : "bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 hover:border-slate-500"
                       }`}
                     >
-                      <span className="text-2xl mb-1">{item.flag}</span>
-                      <span className={`text-[9px] font-bold tracking-wider ${lang === item.id ? "text-blue-400" : "text-slate-500"}`}>{item.label}</span>
+                      <span className="text-2xl mb-1 text-white">{item.flag}</span>
+                      <span className={`text-[11px] font-bold tracking-wider ${lang === item.id ? "text-blue-400" : "text-slate-300"}`}>{item.label}</span>
                     </button>
                   ))}
                 </div>
@@ -1768,7 +1774,7 @@ export default function App() {
 
       {/* ----------------- VIEW: INDIVIDUAL REPORT ----------------- */}
       {currentView === "report" && viewingResult && (
-        <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen bg-slate-900 flex flex-col items-center overflow-x-auto">
+        <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto">
           
           {/* Print Guide Notice (no-print) */}
           <div className="no-print bg-white border border-blue-500/30 rounded-xl p-5 mb-8 text-slate-800 max-w-[210mm] w-full shadow-lg">
@@ -1914,8 +1920,8 @@ export default function App() {
               </div>
 
               {/* Text Comments */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 text-comments-container">
-                <div className="flex flex-col h-full bg-white border border-slate-300 rounded-xl p-3 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-none text-comments-container">
+                <div className="flex flex-col bg-white border border-slate-300 rounded-xl p-3 shadow-sm h-fit">
                   <div className="section-title text-[0.95rem] font-display mb-2">
                     <span>📌</span> 종합 판정 의견
                   </div>
@@ -1923,7 +1929,7 @@ export default function App() {
                     <div dangerouslySetInnerHTML={{ __html: generateReportComment(viewingResult) }} />
                   </div>
                 </div>
-                <div className="flex flex-col h-full bg-white border border-slate-300 rounded-xl p-3 shadow-sm">
+                <div className="flex flex-col bg-white border border-slate-300 rounded-xl p-3 shadow-sm h-fit">
                   <div className="section-title text-[0.95rem] font-display mb-2">
                     <span>🔍</span> 응답 신뢰도 분석
                   </div>
@@ -1962,6 +1968,7 @@ export default function App() {
       {currentView === "total-report" && (
         <TotalReport data={filteredData} onClose={() => setCurrentView("admin-dashboard")} />
       )}
+    </div>
     </div>
   );
 }
