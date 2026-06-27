@@ -1785,7 +1785,7 @@ export default function App() {
 
       {/* ----------------- VIEW: INDIVIDUAL REPORT ----------------- */}
       {currentView === "report" && viewingResult && (
-        <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto">
+        <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto print:overflow-visible print:p-0 print:m-0 print:block">
           
           {/* Print Guide Notice (no-print) */}
           <div className="no-print bg-white border border-blue-500/30 rounded-xl p-5 mb-8 text-slate-800 max-w-[210mm] w-full shadow-lg">
@@ -1936,20 +1936,20 @@ export default function App() {
               </div>
 
               {/* Text Comments Area */}
-              <div className="grid grid-cols-2 gap-4 shrink-0 h-[190px]">
-                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
-                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+              <div className="grid grid-cols-2 gap-4 shrink-0 min-h-[190px] mb-2">
+                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2 shrink-0">
                     <span className="text-blue-600">📌</span> 종합 판정 의견
                   </h3>
-                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
+                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify">
                     <div dangerouslySetInnerHTML={{ __html: generateReportComment(viewingResult) }} />
                   </div>
                 </div>
-                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
-                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2 shrink-0">
                     <span className="text-blue-600">🔍</span> 응답 신뢰도 분석
                   </h3>
-                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
+                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify">
                     <div dangerouslySetInnerHTML={{ __html: generateReliabilityComment(viewingResult) }} />
                   </div>
                 </div>
