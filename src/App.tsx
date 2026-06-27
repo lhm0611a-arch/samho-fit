@@ -1035,14 +1035,14 @@ export default function App() {
             <div className="relative z-10 flex flex-col gap-4 max-w-[280px] sm:max-w-xs mx-auto w-full">
               <button
                 onClick={handleInitializeSystem}
-                className="w-full py-3 sm:py-4 text-xs sm:text-sm font-sans font-bold tracking-widest flex items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-[#002c5f] to-[#009539] text-white shadow-xl hover:shadow-[0_0_20px_rgba(0,149,57,0.4)] transition-all hover:-translate-y-1"
+                className="w-full py-3 sm:py-4 text-[15px] font-sans font-bold tracking-widest flex items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-[#002c5f] to-[#009539] text-white shadow-xl hover:shadow-[0_0_20px_rgba(0,149,57,0.4)] transition-all hover:-translate-y-1"
               >
                 <span>시작하기</span>
                 <ArrowRight className="w-4 h-4 text-white animate-bounce-horizontal" />
               </button>
               <div className="flex justify-center gap-2 mt-2">
                 {["KO", "VN", "ID", "EN"].map((l) => (
-                  <span key={l} className="px-3 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-slate-300 font-mono font-bold shadow-sm">
+                  <span key={l} className="py-1 rounded bg-white/5 border border-white/10 text-[10px] text-slate-300 font-mono font-bold shadow-sm inline-block w-[40.3333px] text-center">
                     {l}
                   </span>
                 ))}
@@ -1122,7 +1122,7 @@ export default function App() {
                       type="text"
                       value={candidateInfo.company}
                       onChange={(e) => setCandidateInfo({ ...candidateInfo, company: e.target.value })}
-                      className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-sm sm:text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
+                      className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
                       placeholder={UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].companyPlaceholder}
                     />
                   </div>
@@ -1135,7 +1135,7 @@ export default function App() {
                         type="text"
                         value={candidateInfo.lastName}
                         onChange={(e) => setCandidateInfo({ ...candidateInfo, lastName: formatCandidateName(e.target.value) })}
-                        className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-sm sm:text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
+                        className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
                         placeholder={UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].lastNamePlaceholder}
                       />
                     </div>
@@ -1147,7 +1147,7 @@ export default function App() {
                         type="text"
                         value={candidateInfo.firstName}
                         onChange={(e) => setCandidateInfo({ ...candidateInfo, firstName: formatCandidateName(e.target.value) })}
-                        className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-sm sm:text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
+                        className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
                         placeholder={UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].firstNamePlaceholder}
                       />
                     </div>
@@ -1160,7 +1160,7 @@ export default function App() {
                       type="text"
                       value={candidateInfo.id}
                       onChange={(e) => setCandidateInfo({ ...candidateInfo, id: formatCandidateId(e.target.value) })}
-                      className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 font-mono text-sm sm:text-base uppercase tracking-widest focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
+                      className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 font-mono text-[15px] uppercase tracking-widest focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
                       placeholder={UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].idPlaceholder}
                     />
                   </div>
@@ -1361,7 +1361,7 @@ export default function App() {
                 onClick={handleManualSubmit}
                 className="btn-premium glow-blue px-10 py-4 md:px-14 md:py-5 font-display font-bold text-base tracking-widest rounded flex items-center gap-2"
               >
-                <span>SUBMIT ASSESSMENT</span>
+                <span className="text-[15px]">SUBMIT ASSESSMENT</span>
                 <Check className="w-5 h-5" />
               </button>
             )}
@@ -1430,11 +1430,14 @@ export default function App() {
       {/* ----------------- VIEW: ADMIN LOGIN ----------------- */}
       {currentView === "admin-login" && (
         <div className="flex-grow flex flex-col items-center justify-center p-4 min-h-screen">
-          <div className="glass-premium cyber-bracket p-6 sm:p-10 max-w-sm w-full text-center border-t-2 border-t-blue-500/50">
+          <div className="glass-premium cyber-bracket p-[30px] max-w-sm w-full text-center border-t-2 border-t-blue-500/50">
             <div className="text-blue-400 font-mono text-[10px] tracking-widest mb-3 sm:mb-4 bg-blue-500/10 inline-block px-3 py-1 rounded border border-blue-500/30 glow-text-blue">
               RESTRICTED AREA
             </div>
-            <h2 className="text-lg sm:text-xl md:text-2xl font-display text-white mb-6 sm:mb-8 tracking-widest font-bold">
+            <h2 
+              className="text-white mb-6 sm:mb-8 tracking-widest font-bold"
+              style={{ fontFamily: "system-ui", fontSize: "22px", borderStyle: "double", borderRadius: "-1px" }}
+            >
               SYS_ADMIN ACCESS
             </h2>
             <input
@@ -1442,7 +1445,7 @@ export default function App() {
               value={adminPassword}
               onChange={(e) => setAdminPassword(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdminAuth()}
-              className="system-input w-full p-3 sm:p-4 mb-6 sm:mb-8 text-center text-lg sm:text-xl font-mono tracking-[0.3em] rounded"
+              className="system-input w-full p-3 sm:p-4 mb-6 sm:mb-8 text-center text-[15px] font-mono tracking-[0.3em] rounded"
               placeholder="PASSWORD"
             />
             <div className="flex gap-3 sm:gap-4">
@@ -1601,7 +1604,7 @@ export default function App() {
             </div>
 
             {/* Dashboard Table */}
-            <div className="overflow-auto flex-grow bg-white relative min-h-[400px]">
+            <div className="overflow-auto flex-grow bg-white relative" style={{ height: "696.333px" }}>
               <table className="w-full text-sm text-left table-fixed min-w-[900px]">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-mono text-[10px] tracking-widest sticky top-0 z-20 shadow-sm">
                   <tr>
@@ -1834,7 +1837,7 @@ export default function App() {
                   <div className="text-2xl font-black text-slate-900 leading-none mb-1">
                     {formatCandidateName(viewingResult.name)} <span className="text-lg text-slate-500 font-bold">({formatCandidateId(viewingResult.id)})</span>
                   </div>
-                  <div className="text-base font-bold text-slate-600 font-mono">
+                  <div className="text-[17px] font-bold text-slate-600 font-mono">
                     {getYYYYMMDD(viewingResult.date)} | {viewingResult.company}
                   </div>
                 </div>
@@ -1864,36 +1867,40 @@ export default function App() {
                 else if (engGrade === "C2") gradeColor = "#ea580c";
                 else if (engGrade === "D") gradeColor = "#ef4444";
 
-                const relText = viewingResult.reliability.split(" (")[0];
+                let relText = viewingResult.reliability.split(" (")[0];
+                if (relText === "매우 높음") relText = "높음";
+                else if (relText === "주의 요망") relText = "주의";
+                else if (relText === "해석 불가") relText = "불가";
+                
                 const relColor = viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" : viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444";
 
                 return (
-                  <div className="grid grid-cols-5 gap-3 mb-6 shrink-0">
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">종합 점수</div>
-                      <div className="flex-1 flex items-center justify-center">
+                  <div className="grid grid-cols-5 gap-2 mb-6 shrink-0 min-h-[96px]">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
+                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">종합 점수</div>
+                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
                         <div className="text-3xl font-black font-sans leading-none text-slate-900 tracking-tight text-center">{viewingResult.total}</div>
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">종합 판정</div>
-                      <div className="flex-1 flex items-center justify-center">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
+                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">종합 판정</div>
+                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
                         <div className="text-3xl font-black font-sans leading-none tracking-tight text-center" style={{ color: gradeColor }}>
                           {korGrade}
                         </div>
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">등급</div>
-                      <div className="flex-1 flex items-center justify-center">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
+                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">등급</div>
+                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
                         <div className="text-3xl font-black font-sans leading-none tracking-tight text-center" style={{ color: gradeColor }}>
                           {engGrade}
                         </div>
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">채용 검토</div>
-                      <div className="flex-1 flex items-center justify-center">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
+                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">채용 검토</div>
+                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
                         <div className="text-[12px] font-black font-sans text-slate-800 text-center leading-[1.2] break-keep tracking-tight">
                           {gradeGuide.split(" (")[0]}
                           <br />
@@ -1903,10 +1910,10 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">신뢰도</div>
-                      <div className="flex-1 flex items-center justify-center w-full">
-                        <div className="text-3xl font-black font-sans leading-none tracking-tight text-center break-keep" style={{ color: relColor }}>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
+                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">신뢰도</div>
+                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
+                        <div className="text-[26px] font-black font-sans leading-[1.1] tracking-tight text-center whitespace-pre-line" style={{ color: relColor }}>
                           {relText}
                         </div>
                       </div>
@@ -1916,8 +1923,8 @@ export default function App() {
               })()}
 
               {/* Main Content Area: Chart and Table */}
-              <div className="flex-1 flex gap-4 min-h-0 mb-6">
-                <div className="w-[45%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="flex-1 flex gap-4 min-h-0 mb-6 w-full">
+                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                   <h3 className="text-lg font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📊</span> 역량 프로파일
                   </h3>
@@ -1929,7 +1936,7 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="w-[55%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                   <h3 className="text-lg font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📋</span> 세부 지표 분석
                   </h3>
@@ -1979,8 +1986,8 @@ export default function App() {
               </div>
 
               {/* Text Comments Area */}
-              <div className="grid grid-cols-2 gap-4 shrink-0 min-h-[190px] mb-2">
-                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+              <div className="flex gap-4 shrink-0 min-h-[190px] mb-2 w-full">
+                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                   <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2 shrink-0">
                     <span className="text-blue-600">📌</span> 종합 판정 의견
                   </h3>
@@ -1988,7 +1995,7 @@ export default function App() {
                     <div dangerouslySetInnerHTML={{ __html: generateReportComment(viewingResult) }} />
                   </div>
                 </div>
-                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                   <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2 shrink-0">
                     <span className="text-blue-600">🔍</span> 응답 신뢰도 분석
                   </h3>
@@ -2004,10 +2011,11 @@ export default function App() {
           </div>
 
           {/* Action buttons footer */}
-          <div className="text-center no-print my-10 flex gap-4">
+          <div className="text-center no-print my-10 flex gap-4" style={{ fontFamily: "Verdana" }}>
             <button
               onClick={handlePrintReport}
               className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold shadow-lg transition cursor-pointer"
+              style={{ fontFamily: "system-ui" }}
             >
               🖨️ 인쇄 / PDF 저장
             </button>
@@ -2017,6 +2025,7 @@ export default function App() {
                 setCurrentView("admin-dashboard");
               }}
               className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-slate-400 px-8 py-4 rounded-xl font-bold shadow-sm transition cursor-pointer"
+              style={{ fontFamily: "system-ui" }}
             >
               대시보드로 돌아가기
             </button>
