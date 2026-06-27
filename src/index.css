@@ -522,11 +522,13 @@ html, body {
     display: none !important;
   }
   
-  .min-h-screen, .flex-grow, .grid-pattern {
+  .min-h-screen, .flex-grow, .grid-pattern, body > div, main, main > div {
     background: white !important;
     height: auto !important;
     min-height: auto !important;
     overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
     display: block !important;
   }
   
@@ -745,6 +747,8 @@ html, body {
     overflow: visible !important;
     page-break-inside: auto !important;
     page-break-after: auto !important;
+    margin: 0 !important;
+    padding: 15mm 20mm !important;
   }
   
   .ai-report-page * {
