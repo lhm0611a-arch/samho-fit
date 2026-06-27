@@ -1822,9 +1822,8 @@ export default function App() {
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2 mb-2">
                     <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                    <span className="text-xl font-black text-slate-800 tracking-tighter uppercase">HD HYUNDAI SAMHO</span>
                   </div>
-                  <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-1">인성검사 평가 결과</h1>
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">인성검사 평가 결과</h1>
                   <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest font-mono">Personality Assessment Report</p>
                 </div>
                 
@@ -1835,7 +1834,7 @@ export default function App() {
                   <div className="text-2xl font-black text-slate-900 leading-none mb-1">
                     {formatCandidateName(viewingResult.name)} <span className="text-lg text-slate-500 font-bold">({formatCandidateId(viewingResult.id)})</span>
                   </div>
-                  <div className="text-[11px] font-bold text-slate-600 font-mono">
+                  <div className="text-sm font-bold text-slate-600 font-mono">
                     {getYYYYMMDD(viewingResult.date)} | {viewingResult.company}
                   </div>
                 </div>
@@ -1843,9 +1842,9 @@ export default function App() {
 
               {/* KPI Score Cards */}
               <div className="grid grid-cols-4 gap-4 mb-6 shrink-0">
-                <div className="bg-slate-800 text-white rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-                  <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">종합 점수</div>
-                  <div className="text-4xl font-black font-sans leading-none">{viewingResult.total}</div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 점수</div>
+                  <div className="text-4xl font-black font-sans leading-none text-slate-900">{viewingResult.total}</div>
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
                   <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 등급</div>
@@ -1876,7 +1875,7 @@ export default function App() {
               {/* Main Content Area: Chart and Table */}
               <div className="flex-1 flex gap-4 min-h-0 mb-6">
                 <div className="w-[45%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-sm font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📊</span> 역량 프로파일
                   </h3>
                   <div className="flex-1 min-h-0 relative flex items-center justify-center">
@@ -1888,7 +1887,7 @@ export default function App() {
                 </div>
                 
                 <div className="w-[55%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-sm font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📋</span> 세부 지표 분석
                   </h3>
                   <div className="flex-1 flex flex-col justify-between">
@@ -1908,13 +1907,13 @@ export default function App() {
                       const gradeLetter = s >= 90 ? "S" : s >= 80 ? "A" : s >= 60 ? "B" : s >= 40 ? "C" : "D";
 
                       return (
-                        <div key={k} className="flex items-center text-[11px]">
-                          <div className="w-[120px] font-bold text-slate-700 whitespace-nowrap flex items-center">
-                            <span className="font-mono text-slate-400 text-[10px] w-6 inline-block">{k}</span>
+                        <div key={k} className="flex items-center text-[12px]">
+                          <div className="w-[125px] font-bold text-slate-700 whitespace-nowrap flex items-center">
+                            <span className="font-mono text-slate-400 text-[11px] w-6 inline-block">{k}</span>
                             {MGMT_GUIDE[k]?.title || k}
                           </div>
                           <div className="w-[30px] flex justify-center">
-                            <span className={`inline-block w-5 h-5 leading-[20px] text-center rounded text-[10px] font-black text-white ${badgeClass}`}>
+                            <span className={`inline-block w-5 h-5 leading-[20px] text-center rounded text-[11px] font-black text-white ${badgeClass}`}>
                               {gradeLetter}
                             </span>
                           </div>
@@ -1926,7 +1925,7 @@ export default function App() {
                               />
                             </div>
                           </div>
-                          <div className="w-[25px] font-extrabold text-right font-sans text-[12px]" style={{ color: progressColor }}>
+                          <div className="w-[25px] font-extrabold text-right font-sans text-[13px]" style={{ color: progressColor }}>
                             {s}
                           </div>
                         </div>
@@ -1939,18 +1938,18 @@ export default function App() {
               {/* Text Comments Area */}
               <div className="grid grid-cols-2 gap-4 shrink-0 h-[190px]">
                 <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
-                  <h3 className="text-sm font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📌</span> 종합 판정 의견
                   </h3>
-                  <div className="flex-1 text-[11.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
+                  <div className="flex-1 text-[12.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
                     <div dangerouslySetInnerHTML={{ __html: generateReportComment(viewingResult) }} />
                   </div>
                 </div>
                 <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
-                  <h3 className="text-sm font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">🔍</span> 응답 신뢰도 분석
                   </h3>
-                  <div className="flex-1 text-[11.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
+                  <div className="flex-1 text-[12.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
                     <div dangerouslySetInnerHTML={{ __html: generateReliabilityComment(viewingResult) }} />
                   </div>
                 </div>
