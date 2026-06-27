@@ -217,14 +217,11 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
 
       <div id="view-total-report" className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center">
         {/* PAGE 1: COVER */}
-        <div
-          className="a4-page executive-cover bg-white flex flex-col relative overflow-hidden"
-          style={{ width: "210mm", minWidth: "210mm", minHeight: "297mm", padding: 0 }}
-        >
+        <div className="a4-page executive-cover bg-white flex flex-col relative overflow-hidden">
           {/* Top Green/Navy Accent Bar */}
           <div className="w-full h-4 bg-gradient-to-r from-[#002c5f] to-[#009539]" />
           
-          <div className="flex-grow flex flex-col justify-between p-16">
+          <div className="flex-grow h-full flex flex-col justify-between p-16">
             <div className="text-right">
               <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-12 ml-auto object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
               <span className="hidden font-mono text-xl tracking-widest font-bold text-[#002c5f]">HD HYUNDAI SAMHO</span>
@@ -259,10 +256,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
         </div>
 
         {/* PAGE 2: SUMMARY */}
-        <div
-          className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm]"
-          style={{ minHeight: "297mm" }}
-        >
+        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
           <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
             <div>
               <div className="text-3xl font-black text-[#002c5f]">종합 분석 요약</div>
@@ -566,10 +560,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
         </div>
 
         {/* PAGE 3: COMPANY STATS */}
-        <div
-          className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden"
-          style={{ minHeight: "297mm", breakAfter: "page" }}
-        >
+        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
           <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
             <div>
               <div className="text-3xl font-black text-[#002c5f] tracking-tighter">업체별 현황</div>
@@ -614,10 +605,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
         </div>
 
         {/* PAGE 4: LIST */}
-        <div
-          className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm]"
-          style={{ minHeight: "297mm" }}
-        >
+        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
           <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
             <div>
               <div className="text-2xl font-black text-[#002c5f]">세부 대상자 명단</div>
