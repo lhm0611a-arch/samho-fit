@@ -108,10 +108,10 @@ export function calculateAll(name: string, map: Record<number, number>): Omit<As
     A: Math.round(((sub.A1 || 0) + (sub.A2 || 0)) / 2),
   };
 
-  // 1. 근태(C), 2. 규정(R), 3. 안전(S) 가중치 (안전 1.4배, 근태/규정 0.8배)
-  const total = Math.round((main.C * 0.8 + main.R * 0.8 + main.S * 1.4) / 3);
+  // [수정된 부분] 6대 역량을 모두 포함하되, 조선업 현장 특성에 맞춘 가중치 적용 (총합 6.0)
+  const total = Math.round((main.C * 1.0 + main.R * 1.0 + main.S * 1.5 + main.T * 0.9 + main.E * 0.8 + main.A * 0.8) / 6);
   
-  const crit = [sub.C1, sub.C2, sub.R1, sub.R2, sub.S1, sub.S2];
+  const crit = [sub.C1 || 0, sub.C2 || 0, sub.R1 || 0, sub.R2 || 0, sub.S1 || 0, sub.S2 || 0];
   const sFail = (sub.S1 || 0) < 60 || (sub.S2 || 0) < 60;
   const failCnt = crit.filter((v) => v < 60).length;
   const isCritFail = sFail || failCnt >= 2;
@@ -137,7 +137,6 @@ export function calculateAll(name: string, map: Record<number, number>): Omit<As
     }
   }
 
-  // Response Reliability Check
   if (l1 >= 3) rG = "V2";
   if (l2 >= 1) rG = "V2";
   if (kCnt >= 65) rG = "V3";
