@@ -886,7 +886,7 @@ export default function App() {
     <div className="flex flex-col min-h-screen relative z-0 bg-[#0c1424]">
       {/* Universal Faint Shipyard Background */}
       <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-15 pointer-events-none z-0" 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-15 pointer-events-none z-0 print:hidden" 
         style={{ backgroundImage: "url('/yard.png')" }} 
       />
       <div className="grid-pattern flex flex-col min-h-screen relative z-10">
@@ -1091,10 +1091,10 @@ export default function App() {
                 </label>
                 <div className="flex justify-center gap-2">
                   {[
-                    { id: "kr", flag: "🇰🇷", label: "KOR" },
-                    { id: "vn", flag: "🇻🇳", label: "VIE" },
-                    { id: "id", flag: "🇮🇩", label: "INA" },
-                    { id: "en", flag: "🇺🇸", label: "ENG" },
+                    { id: "kr", flagCode: "kr", label: "KOR" },
+                    { id: "vn", flagCode: "vn", label: "VIE" },
+                    { id: "id", flagCode: "id", label: "INA" },
+                    { id: "en", flagCode: "us", label: "ENG" },
                   ].map((item) => (
                     <button
                       key={item.id}
@@ -1105,7 +1105,7 @@ export default function App() {
                           : "bg-slate-800/50 border-slate-700 hover:bg-slate-700/50 hover:border-slate-500"
                       }`}
                     >
-                      <span className="text-2xl mb-1 text-white">{item.flag}</span>
+                      <img src={`https://flagcdn.com/w40/${item.flagCode}.png`} width="24" height="16" alt={item.label} className="mb-1.5 shadow-sm rounded-sm" />
                       <span className={`text-[11px] font-bold tracking-wider ${lang === item.id ? "text-blue-400" : "text-slate-300"}`}>{item.label}</span>
                     </button>
                   ))}
@@ -1805,7 +1805,7 @@ export default function App() {
 
           {/* Print/PDF Page layout */}
           <div id="view-report" className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center shadow-2xl">
-            <div className="a4-page overflow-visible bg-white p-[12mm_15mm] flex flex-col" style={{ width: "210mm", minWidth: "210mm", height: "297mm" }}>
+            <div className="a4-page overflow-visible bg-white p-[12mm_15mm] flex flex-col" style={{ width: "210mm", minWidth: "210mm", minHeight: "297mm" }}>
               
               {/* Header */}
               <div className="report-header gap-4 border-b-[3px] border-[#002c5f] pb-3 mb-4 flex justify-between items-end">
