@@ -1841,84 +1841,67 @@ export default function App() {
               </div>
 
               {/* KPI Score Cards & Guide */}
-              <div className="flex gap-4 mb-6 shrink-0 h-[88px]">
-                {/* 3 KPI Boxes */}
-                <div className="flex w-[45%] gap-4">
-                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 점수</div>
-                    <div className="text-4xl font-black font-sans leading-none text-slate-900">{viewingResult.total}</div>
-                  </div>
-                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 등급</div>
-                    <div className="text-4xl font-black font-sans leading-none" style={{ 
-                      color: viewingResult.decision.includes("(S)") ? "#4f46e5" : 
-                             viewingResult.decision.includes("(A)") ? "#2563eb" : 
-                             viewingResult.decision.includes("(B1)") ? "#10b981" : 
-                             viewingResult.decision.includes("(B2)") ? "#fbbf24" : "#ef4444"
-                    }}>
-                      {viewingResult.decision.split(" ")[0]}
-                    </div>
-                  </div>
-                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
-                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">신뢰도 판별</div>
-                    <div className="text-3xl font-black font-sans leading-none" style={{ 
-                      color: viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" :
-                             viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444"
-                    }}>
-                      {viewingResult.reliability.split(" ")[0]}
-                    </div>
-                  </div>
-                </div>
+              {(() => {
+                const engGradeMatch = viewingResult.decision.match(/\(([^)]+)\)/);
+                const engGrade = engGradeMatch ? engGradeMatch[1] : viewingResult.decision.replace(/[^A-Z0-9]/g, "");
+                const korGrade = viewingResult.decision.split(" ")[0];
+                
+                let gradeGuide = "";
+                if (engGrade === "S") gradeGuide = "조직/직무 역량 탁월 (즉시 투입)";
+                else if (engGrade === "A") gradeGuide = "전반적 역량 우수 (채용 권장)";
+                else if (engGrade === "B1") gradeGuide = "기본 소양 보유 (채용 권장)";
+                else if (engGrade === "B2") gradeGuide = "역량 평이 (초기 멘토링)";
+                else if (engGrade === "C1") gradeGuide = "취약점/신뢰도 저하 (심층 검증)";
+                else if (engGrade === "C2") gradeGuide = "안전의식 낮음 (특별 관리)";
+                else if (engGrade === "D") gradeGuide = "부적응/불성실 (채용 불가)";
+                else gradeGuide = "- (-)";
+                
+                let gradeColor = "#10b981";
+                if (engGrade === "S") gradeColor = "#4f46e5";
+                else if (engGrade === "A") gradeColor = "#2563eb";
+                else if (engGrade === "B2") gradeColor = "#fbbf24";
+                else if (engGrade === "C1") gradeColor = "#f59e0b";
+                else if (engGrade === "C2") gradeColor = "#ea580c";
+                else if (engGrade === "D") gradeColor = "#ef4444";
 
-                {/* 5 Grade Guide Boxes */}
-                <div className="flex w-[55%] gap-2">
-                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
-                    <div className="flex items-end gap-1 mb-1">
-                      <span className="text-blue-700 font-black text-sm leading-none">S</span>
-                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">최우수</span>
+                const relText = viewingResult.reliability.split(" (")[0];
+                const relColor = viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" : viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444";
+
+                return (
+                  <div className="grid grid-cols-5 gap-3 mb-6 shrink-0 h-[88px]">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 점수</div>
+                      <div className="text-4xl font-black font-sans leading-none text-slate-900">{viewingResult.total}</div>
                     </div>
-                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
-                      조직/직무 역량 탁월<br/>(즉시 투입)
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 판정</div>
+                      <div className="text-[1.7rem] font-black font-sans leading-none" style={{ color: gradeColor }}>
+                        {korGrade}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
-                    <div className="flex items-end gap-1 mb-1">
-                      <span className="text-blue-600 font-black text-sm leading-none">A</span>
-                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">우수</span>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">영문 등급</div>
+                      <div className="text-4xl font-black font-sans leading-none" style={{ color: gradeColor }}>
+                        {engGrade}
+                      </div>
                     </div>
-                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
-                      전반적 역량 우수<br/>(채용 권장)
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 flex flex-col items-center justify-center shadow-sm">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">정의 및 가이드</div>
+                      <div className="text-[11px] sm:text-xs font-black text-slate-700 text-center leading-[1.2] break-keep">
+                        {gradeGuide.split(" (")[0]}
+                        <br />
+                        <span className="text-[10px] text-slate-500">({gradeGuide.split(" (")[1] || ""})</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
-                    <div className="flex items-end gap-1 mb-1">
-                      <span className="text-emerald-600 font-black text-sm leading-none">B</span>
-                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">보통/관찰</span>
-                    </div>
-                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
-                      기본 소양 보유<br/>(채용/멘토링)
-                    </div>
-                  </div>
-                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
-                    <div className="flex items-end gap-1 mb-1">
-                      <span className="text-orange-500 font-black text-sm leading-none">C</span>
-                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">검토/위험</span>
-                    </div>
-                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
-                      취약점/안전 낮음<br/>(심층검증/관리)
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">신뢰도 판별</div>
+                      <div className="text-[1.7rem] font-black font-sans leading-none" style={{ color: relColor }}>
+                        {relText}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
-                    <div className="flex items-end gap-1 mb-1">
-                      <span className="text-red-600 font-black text-sm leading-none">D</span>
-                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">부적격</span>
-                    </div>
-                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
-                      부적응/불성실<br/>(채용 불가)
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Main Content Area: Chart and Table */}
               <div className="flex-1 flex gap-4 min-h-0 mb-6">
