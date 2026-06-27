@@ -447,6 +447,8 @@ html, body {
   margin-bottom: 1.5rem;
   font-weight: 600;
   color: #1e293b;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .ai-markdown ul {
@@ -458,6 +460,8 @@ html, body {
 
 .ai-markdown li {
   margin-bottom: 0.5rem;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .ai-markdown table {
@@ -466,6 +470,13 @@ html, body {
   margin-top: 1rem;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;
+  page-break-inside: auto;
+  break-inside: auto;
+}
+
+.ai-markdown tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .ai-markdown th {
@@ -569,7 +580,7 @@ html, body {
   }
   #print-table-view th, #print-table-view td {
     border: 1px solid #cbd5e1 !important;
-    padding: 8px !important;
+    padding: 4px 6px !important;
     font-size: 11px !important;
     color: black !important;
   }
@@ -604,7 +615,7 @@ html, body {
     padding: 0 !important;
   }
   
-  #view-report .a4-page:first-of-type {
+  #view-report > .a4-page:first-of-type {
     height: 297mm !important;
     min-height: 297mm !important;
     max-height: 297mm !important;
