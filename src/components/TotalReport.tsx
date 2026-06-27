@@ -606,10 +606,18 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
 
         {/* PAGE 4 onwards: LIST (Chunked) */}
         {(() => {
-          const ITEMS_PER_PAGE = 25;
+          const sortedData = [...data].sort((a, b) => {
+            const compA = a.company || "";
+            const compB = b.company || "";
+            if (compA !== compB) {
+              return compA.localeCompare(compB);
+            }
+            return a.id.localeCompare(b.id);
+          });
+          const ITEMS_PER_PAGE = 20;
           const chunks = [];
-          for (let i = 0; i < data.length; i += ITEMS_PER_PAGE) {
-            chunks.push(data.slice(i, i + ITEMS_PER_PAGE));
+          for (let i = 0; i < sortedData.length; i += ITEMS_PER_PAGE) {
+            chunks.push(sortedData.slice(i, i + ITEMS_PER_PAGE));
           }
           if (chunks.length === 0) chunks.push([]);
 
