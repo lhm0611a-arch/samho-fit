@@ -604,113 +604,126 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
           </div>
         </div>
 
-        {/* PAGE 4: LIST */}
-        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
-          <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
-            <div>
-              <div className="text-2xl font-black text-[#002c5f]">세부 대상자 명단</div>
-              <div className="text-sm font-black text-gray-400 mt-1 tracking-widest">
-                검사 결과 상세 리스트
+        {/* PAGE 4 onwards: LIST (Chunked) */}
+        {(() => {
+          const ITEMS_PER_PAGE = 25;
+          const chunks = [];
+          for (let i = 0; i < data.length; i += ITEMS_PER_PAGE) {
+            chunks.push(data.slice(i, i + ITEMS_PER_PAGE));
+          }
+          if (chunks.length === 0) chunks.push([]);
+
+          return chunks.map((chunk, pageIndex) => (
+            <div key={`list-page-${pageIndex}`} className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
+              <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
+                <div>
+                  <div className="text-2xl font-black text-[#002c5f]">세부 대상자 명단 {chunks.length > 1 && `(${pageIndex + 1}/${chunks.length})`}</div>
+                  <div className="text-sm font-black text-gray-400 mt-1 tracking-widest">
+                    검사 결과 상세 리스트
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="flex-grow overflow-auto">
-            <table className="w-full text-xs border-collapse border border-slate-200">
-              <thead className="bg-slate-100 border-b-2 border-slate-300 font-bold text-slate-600 uppercase">
-                <tr>
-                  <th className="p-2 border border-slate-200 text-center w-[15%]">업체명</th>
-                  <th className="p-2 border border-slate-200 text-center w-[10%]">ID</th>
-                  <th className="p-2 border border-slate-200 text-center w-[20%]">성명</th>
-                  <th className="p-2 border border-slate-200 text-center w-[10%]">점수</th>
-                  <th className="p-2 border border-slate-200 text-center w-[10%]">등급</th>
-                  <th className="p-2 border border-slate-200 text-center w-[10%]">신뢰도</th>
-                  <th className="p-2 border border-slate-200 text-center w-[10%]">안전</th>
-                  <th className="p-2 border border-slate-200 text-center w-[15%]">비고</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.map((d) => {
-                  let code = "B1";
-                  if (d.decision.includes("(")) {
-                    const match = d.decision.match(/\(([^)]+)\)/);
-                    if (match) code = match[1];
-                  } else {
-                    code = d.decision;
-                  }
-                  code = code.replace(/[^A-Z0-9]/g, "");
-                  if (code === "C") code = d.total < 50 ? "C2" : "C1";
-                  else if (code === "B") code = d.total < 66 ? "B2" : "B1";
-
-                  const isRisk =
-                    code === "C2" ||
-                    code === "D" ||
-                    d.reliability.includes("V3") ||
-                    d.reliability.includes("V4");
-
-                  const rowClass = isRisk ? "bg-red-50" : "";
-                  const remark = isRisk
-                    ? code === "D"
-                      ? "채용부적격"
-                      : d.reliability.includes("V3")
-                      ? "신뢰도검증"
-                      : "심층면접필요"
-                    : "-";
-
-                  let gradeBadgeClass = "bg-slate-400";
-                  if (code.includes("S")) gradeBadgeClass = "bg-indigo-600";
-                  else if (code.includes("A")) gradeBadgeClass = "bg-blue-500";
-                  else if (code.includes("B")) gradeBadgeClass = "bg-emerald-500";
-                  else if (code.includes("C")) gradeBadgeClass = "bg-amber-500";
-                  else if (code.includes("D")) gradeBadgeClass = "bg-red-500";
-
-                  return (
-                    <tr key={d.id + d.name} className={`${rowClass} break-inside-avoid`}>
-                      <td className="p-2 border border-slate-200 font-bold text-slate-700 text-center">
-                        {d.company || "-"}
-                      </td>
-                      <td className="p-2 border border-slate-200 font-mono text-slate-500 text-center">
-                        {formatCandidateId(d.id)}
-                      </td>
-                      <td className="p-2 border border-slate-200 font-bold text-slate-800 text-center">
-                        {formatCandidateName(d.name)}
-                      </td>
-                      <td className="p-2 border border-slate-200 text-center font-bold text-blue-700">
-                        {d.total}
-                      </td>
-                      <td className="p-2 border border-slate-200 text-center">
-                        <span
-                          className={`inline-block w-[22px] h-[22px] leading-[22px] text-center rounded-full font-black text-[0.75rem] text-white ${gradeBadgeClass} print-exact`}
-                        >
-                          {code}
-                        </span>
-                      </td>
-                      <td
-                        className={`p-2 border border-slate-200 text-center ${
-                          d.reliability.includes("V3") || d.reliability.includes("V4")
-                            ? "text-red-600 font-bold"
-                            : "text-slate-600"
-                        }`}
-                      >
-                        {d.reliability.split("(")[0].trim()}
-                      </td>
-                      <td className="p-2 border border-slate-200 text-center text-slate-700">
-                        {d.details.S1}/{d.details.S2}
-                      </td>
-                      <td className="p-2 border border-slate-200 text-slate-500 text-center text-[11px] font-bold">
-                        {remark}
-                      </td>
+              <div className="flex-grow overflow-hidden">
+                <table className="w-full text-xs border-collapse border border-slate-200">
+                  <thead className="bg-slate-100 border-b-2 border-slate-300 font-bold text-slate-600 uppercase">
+                    <tr>
+                      <th className="p-2 border border-slate-200 text-center w-[15%]">업체명</th>
+                      <th className="p-2 border border-slate-200 text-center w-[10%]">ID</th>
+                      <th className="p-2 border border-slate-200 text-center w-[20%]">성명</th>
+                      <th className="p-2 border border-slate-200 text-center w-[10%]">점수</th>
+                      <th className="p-2 border border-slate-200 text-center w-[10%]">등급</th>
+                      <th className="p-2 border border-slate-200 text-center w-[10%]">신뢰도</th>
+                      <th className="p-2 border border-slate-200 text-center w-[10%]">안전</th>
+                      <th className="p-2 border border-slate-200 text-center w-[15%]">비고</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {chunk.map((d) => {
+                      let code = "B1";
+                      if (d.decision.includes("(")) {
+                        const match = d.decision.match(/\(([^)]+)\)/);
+                        if (match) code = match[1];
+                      } else {
+                        code = d.decision;
+                      }
+                      code = code.replace(/[^A-Z0-9]/g, "");
+                      if (code === "C") code = d.total < 50 ? "C2" : "C1";
+                      else if (code === "B") code = d.total < 66 ? "B2" : "B1";
 
-          <div className="mt-4 pt-4 text-center text-xs text-gray-300 font-black tracking-widest">
-            [ 보고서 끝 ]
-          </div>
-        </div>
+                      const isRisk =
+                        code === "C2" ||
+                        code === "D" ||
+                        d.reliability.includes("V3") ||
+                        d.reliability.includes("V4");
+
+                      const rowClass = isRisk ? "bg-red-50" : "";
+                      const remark = isRisk
+                        ? code === "D"
+                          ? "채용부적격"
+                          : d.reliability.includes("V3")
+                          ? "신뢰도검증"
+                          : "심층면접필요"
+                        : "-";
+
+                      let gradeBadgeClass = "bg-slate-400";
+                      if (code.includes("S")) gradeBadgeClass = "bg-indigo-600";
+                      else if (code.includes("A")) gradeBadgeClass = "bg-blue-500";
+                      else if (code.includes("B")) gradeBadgeClass = "bg-emerald-500";
+                      else if (code.includes("C")) gradeBadgeClass = "bg-amber-500";
+                      else if (code.includes("D")) gradeBadgeClass = "bg-red-500";
+
+                      return (
+                        <tr key={d.id + d.name} className={`${rowClass} break-inside-avoid`}>
+                          <td className="p-2 border border-slate-200 font-bold text-slate-700 text-center">
+                            {d.company || "-"}
+                          </td>
+                          <td className="p-2 border border-slate-200 font-mono text-slate-500 text-center">
+                            {formatCandidateId(d.id)}
+                          </td>
+                          <td className="p-2 border border-slate-200 font-bold text-slate-800 text-center">
+                            {formatCandidateName(d.name)}
+                          </td>
+                          <td className="p-2 border border-slate-200 text-center font-bold text-blue-700">
+                            {d.total}
+                          </td>
+                          <td className="p-2 border border-slate-200 text-center">
+                            <span
+                              className={`inline-block w-[22px] h-[22px] leading-[22px] text-center rounded-full font-black text-[0.75rem] text-white ${gradeBadgeClass} print-exact`}
+                            >
+                              {code}
+                            </span>
+                          </td>
+                          <td
+                            className={`p-2 border border-slate-200 text-center ${
+                              d.reliability.includes("V3") || d.reliability.includes("V4")
+                                ? "text-red-600 font-bold"
+                                : "text-slate-600"
+                            }`}
+                          >
+                            {d.reliability.split("(")[0].trim()}
+                          </td>
+                          <td className="p-2 border border-slate-200 text-center text-slate-700">
+                            {d.details.S1}/{d.details.S2}
+                          </td>
+                          <td className="p-2 border border-slate-200 text-slate-500 text-center text-[11px] font-bold">
+                            {remark}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {pageIndex === chunks.length - 1 && (
+                <div className="mt-4 pt-4 text-center text-xs text-gray-300 font-black tracking-widest">
+                  [ 보고서 끝 ]
+                </div>
+              )}
+            </div>
+          ));
+        })()}
       </div>
 
       <div className="text-center no-print my-10 flex gap-4">
