@@ -217,7 +217,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
 
       <div id="view-total-report" className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center">
         {/* PAGE 1: COVER */}
-        <div className="a4-page executive-cover bg-white flex flex-col relative overflow-hidden">
+        <div className="a4-page executive-cover bg-white flex flex-col relative overflow-hidden" style={{ minHeight: "297mm", height: "297mm" }}>
           {/* Top Green/Navy Accent Bar */}
           <div className="w-full h-4 bg-gradient-to-r from-[#002c5f] to-[#009539]" />
           
@@ -256,7 +256,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
         </div>
 
         {/* PAGE 2: SUMMARY */}
-        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
+        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden" style={{ minHeight: "297mm", height: "297mm" }}>
           <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
             <div>
               <div className="text-3xl font-black text-[#002c5f]">종합 분석 요약</div>
@@ -343,7 +343,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4 h-[230px]">
+          <div className="grid grid-cols-2 gap-4 mb-4 h-[250px]">
             <div className="flex flex-col h-full">
               <div className="text-[1.05rem] font-black text-[#002c5f] flex items-center gap-2 mb-1 border-b border-slate-200 pb-1">
                 <span>📊</span> 종합 등급 분포
@@ -356,13 +356,13 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
                       cx="50%"
                       cy="50%"
                       innerRadius={30}
-                      outerRadius={55}
+                      outerRadius={45}
                       paddingAngle={2}
                       dataKey="value"
                       label={({ name, percent }) =>
                         percent > 0 ? `${name} ${(percent * 100).toFixed(0)}%` : ""
                       }
-                      labelLine={false}
+                      labelLine={true}
                     >
                       {pieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -379,7 +379,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
               </div>
               <div className="flex-1 bg-white rounded-xl flex items-center justify-center p-1 relative">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius={55} data={radarData}>
+                  <RadarChart cx="50%" cy="50%" outerRadius={50} data={radarData}>
                     <PolarGrid stroke="#e2e8f0" />
                     <PolarAngleAxis
                       dataKey="subject"
@@ -408,7 +408,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-2 h-[160px]">
+          <div className="grid grid-cols-2 gap-4 mb-2 h-[180px]">
             <div className="flex flex-col h-full">
               <div className="text-[1.05rem] font-black text-[#002c5f] flex items-center gap-2 mb-1 border-b border-slate-200 pb-1">
                 <span>📊</span> 판정 등급별 인원 분포
@@ -560,7 +560,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
         </div>
 
         {/* PAGE 3: COMPANY STATS */}
-        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
+        <div className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden" style={{ minHeight: "297mm", height: "297mm" }}>
           <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
             <div>
               <div className="text-3xl font-black text-[#002c5f] tracking-tighter">업체별 현황</div>
@@ -614,7 +614,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
           if (chunks.length === 0) chunks.push([]);
 
           return chunks.map((chunk, pageIndex) => (
-            <div key={`list-page-${pageIndex}`} className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden">
+            <div key={`list-page-${pageIndex}`} className="a4-page bg-white p-[15mm_20mm] flex flex-col relative w-[210mm] overflow-hidden" style={{ minHeight: "297mm", height: "297mm" }}>
               <div className="border-b-[3px] border-[#002c5f] pb-3 mb-5 flex justify-between items-end">
                 <div>
                   <div className="text-2xl font-black text-[#002c5f]">세부 대상자 명단 {chunks.length > 1 && `(${pageIndex + 1}/${chunks.length})`}</div>
