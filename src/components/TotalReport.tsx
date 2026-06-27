@@ -705,7 +705,13 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
                               : "text-slate-600"
                           }`}
                         >
-                          {d.reliability.split("(")[0].trim()}
+                          {(() => {
+                            let rText = d.reliability.split("(")[0].trim();
+                            if (rText === "매우 높음") rText = "높음";
+                            else if (rText === "주의 요망") rText = "주의";
+                            else if (rText === "해석 불가") rText = "불가";
+                            return rText;
+                          })()}
                         </td>
                         <td className="py-1.5 px-2 border border-slate-200 text-center text-slate-700">
                           {d.details.S1}/{d.details.S2}
