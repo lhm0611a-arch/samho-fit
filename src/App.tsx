@@ -1868,45 +1868,45 @@ export default function App() {
                 const relColor = viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" : viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444";
 
                 return (
-                  <div className="grid grid-cols-5 gap-3 mb-6 shrink-0 h-[88px]">
+                  <div className="grid grid-cols-5 gap-3 mb-6 shrink-0">
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1">종합 점수</div>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">종합 점수</div>
                       <div className="flex-1 flex items-center justify-center">
-                        <div className="text-4xl font-black font-sans leading-none text-slate-900 tracking-tight">{viewingResult.total}</div>
+                        <div className="text-3xl font-black font-sans leading-none text-slate-900 tracking-tight text-center">{viewingResult.total}</div>
                       </div>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1">종합 판정</div>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">종합 판정</div>
                       <div className="flex-1 flex items-center justify-center">
-                        <div className="text-4xl font-black font-sans leading-none tracking-tight" style={{ color: gradeColor }}>
+                        <div className="text-3xl font-black font-sans leading-none tracking-tight text-center" style={{ color: gradeColor }}>
                           {korGrade}
                         </div>
                       </div>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1">등급</div>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">등급</div>
                       <div className="flex-1 flex items-center justify-center">
-                        <div className="text-4xl font-black font-sans leading-none tracking-tight" style={{ color: gradeColor }}>
+                        <div className="text-3xl font-black font-sans leading-none tracking-tight text-center" style={{ color: gradeColor }}>
                           {engGrade}
                         </div>
                       </div>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1">채용 검토</div>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">채용 검토</div>
                       <div className="flex-1 flex items-center justify-center">
-                        <div className="text-[13px] font-black font-sans text-slate-800 text-center leading-[1.2] break-keep tracking-tight">
+                        <div className="text-[12px] font-black font-sans text-slate-800 text-center leading-[1.2] break-keep tracking-tight">
                           {gradeGuide.split(" (")[0]}
                           <br />
                           {gradeGuide.split(" (")[1] && (
-                            <span className="text-[11px] text-slate-500 font-bold">({gradeGuide.split(" (")[1]}</span>
+                            <span className="text-[10px] text-slate-500 font-bold">({gradeGuide.split(" (")[1].replace(")", "")})</span>
                           )}
                         </div>
                       </div>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-between shadow-sm">
-                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1">신뢰도</div>
-                      <div className="flex-1 flex items-center justify-center">
-                        <div className="text-4xl font-black font-sans leading-none tracking-tight" style={{ color: relColor }}>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 mt-1 text-center">신뢰도</div>
+                      <div className="flex-1 flex items-center justify-center w-full">
+                        <div className="text-3xl font-black font-sans leading-none tracking-tight text-center break-keep" style={{ color: relColor }}>
                           {relText}
                         </div>
                       </div>
