@@ -196,7 +196,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
   ];
 
   return (
-    <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto text-slate-800">
+    <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto text-slate-800 print:overflow-visible print:p-0 print:m-0 print:block">
       <div className="no-print bg-white border border-blue-500/30 rounded-xl p-5 mb-8 text-slate-800 max-w-[210mm] w-full shadow-lg">
         <div className="flex items-center gap-3 mb-3 border-b border-slate-200 pb-2">
           <span className="text-xl">💡</span>
@@ -614,7 +614,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
             }
             return a.id.localeCompare(b.id);
           });
-          const ITEMS_PER_PAGE = 16;
+          const ITEMS_PER_PAGE = 20;
           const chunks = [];
           for (let i = 0; i < sortedData.length; i += ITEMS_PER_PAGE) {
             chunks.push(sortedData.slice(i, i + ITEMS_PER_PAGE));
@@ -636,14 +636,14 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
                 <table className="w-full text-xs border-collapse border border-slate-200">
                   <thead className="bg-slate-100 border-b-2 border-slate-300 font-bold text-slate-600 uppercase">
                     <tr>
-                      <th className="p-2 border border-slate-200 text-center w-[15%]">업체명</th>
-                      <th className="p-2 border border-slate-200 text-center w-[10%]">ID</th>
-                      <th className="p-2 border border-slate-200 text-center w-[20%]">성명</th>
-                      <th className="p-2 border border-slate-200 text-center w-[10%]">점수</th>
-                      <th className="p-2 border border-slate-200 text-center w-[10%]">등급</th>
-                      <th className="p-2 border border-slate-200 text-center w-[10%]">신뢰도</th>
-                      <th className="p-2 border border-slate-200 text-center w-[10%]">안전</th>
-                      <th className="p-2 border border-slate-200 text-center w-[15%]">비고</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[15%]">업체명</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[10%]">ID</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[20%]">성명</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[10%]">점수</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[10%]">등급</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[10%]">신뢰도</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[10%]">안전</th>
+                      <th className="py-1 px-2 border border-slate-200 text-center w-[15%]">비고</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -683,27 +683,27 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
 
                       return (
                         <tr key={d.id + d.name} className={`${rowClass} break-inside-avoid`}>
-                          <td className="p-2 border border-slate-200 font-bold text-slate-700 text-center">
+                          <td className="py-1 px-2 border border-slate-200 font-bold text-slate-700 text-center">
                             {d.company || "-"}
                           </td>
-                          <td className="p-2 border border-slate-200 font-mono text-slate-500 text-center">
+                          <td className="py-1 px-2 border border-slate-200 font-mono text-slate-500 text-center">
                             {formatCandidateId(d.id)}
                           </td>
-                          <td className="p-2 border border-slate-200 font-bold text-slate-800 text-center">
+                          <td className="py-1 px-2 border border-slate-200 font-bold text-slate-800 text-center">
                             {formatCandidateName(d.name)}
                           </td>
-                          <td className="p-2 border border-slate-200 text-center font-bold text-blue-700">
+                          <td className="py-1 px-2 border border-slate-200 text-center font-bold text-blue-700">
                             {d.total}
                           </td>
-                          <td className="p-2 border border-slate-200 text-center">
+                          <td className="py-1 px-2 border border-slate-200 text-center">
                             <span
-                              className={`inline-block w-[22px] h-[22px] leading-[22px] text-center rounded-full font-black text-[0.75rem] text-white ${gradeBadgeClass} print-exact`}
+                              className={`inline-block w-[20px] h-[20px] leading-[20px] text-center rounded-full font-black text-[11px] text-white ${gradeBadgeClass} print-exact`}
                             >
                               {code}
                             </span>
                           </td>
                           <td
-                            className={`p-2 border border-slate-200 text-center ${
+                            className={`py-1 px-2 border border-slate-200 text-center ${
                               d.reliability.includes("V3") || d.reliability.includes("V4")
                                 ? "text-red-600 font-bold"
                                 : "text-slate-600"
@@ -711,10 +711,10 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
                           >
                             {d.reliability.split("(")[0].trim()}
                           </td>
-                          <td className="p-2 border border-slate-200 text-center text-slate-700">
+                          <td className="py-1 px-2 border border-slate-200 text-center text-slate-700">
                             {d.details.S1}/{d.details.S2}
                           </td>
-                          <td className="p-2 border border-slate-200 text-slate-500 text-center text-[11px] font-bold">
+                          <td className="py-1 px-2 border border-slate-200 text-slate-500 text-center text-[11px] font-bold">
                             {remark}
                           </td>
                         </tr>
