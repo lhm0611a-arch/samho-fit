@@ -547,6 +547,7 @@ html, body {
     display: block !important;
     height: auto !important;
     overflow: visible !important;
+    page-break-before: always !important;
   }
   
   /* Print Admin Table View */
@@ -614,6 +615,9 @@ html, body {
     height: auto !important;
     max-height: none !important;
     display: block !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    page-break-after: auto !important;
   }
   .report-header {
     border-bottom: 2px solid #002c5f !important;
@@ -735,7 +739,7 @@ html, body {
   /* AI Report Page custom print rules */
   .a4-page.ai-report-page {
     height: auto !important;
-    min-height: 297mm !important;
+    min-height: auto !important;
     max-height: none !important;
     display: block !important;
     overflow: visible !important;
