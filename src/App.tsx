@@ -378,7 +378,7 @@ export default function App() {
 
     // 2. Submit to Firebase (Firestore) and Google Sheets via secure proxy
     if (isOnline) {
-      try {
+      const saveToCloud = async () => {
         const sheetPayload = {
           date: payload.date,
           name: payload.name,
@@ -407,19 +407,30 @@ export default function App() {
           console.error("Error adding document to Firebase: ", fbErr);
         }
 
-        await fetch("/api/sheets-proxy", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(sheetPayload),
-        });
+        try {
+          await fetch("/api/sheets-proxy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(sheetPayload),
+          });
+        } catch (sheetErr) {
+          console.error("Error adding to Sheets: ", sheetErr);
+        }
+      };
+
+      try {
+        await Promise.race([
+          saveToCloud(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 8000))
+        ]);
       } catch (err) {
-        console.warn("Save error:", err);
+        console.warn("Save warning (timeout or error):", err);
       }
     }
 
     setTimeout(() => {
       setCurrentView("thankyou");
-    }, 2000);
+    }, 1000);
   };
 
   // Google Sheets DB synchronization (GET)
