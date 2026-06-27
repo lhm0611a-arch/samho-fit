@@ -219,7 +219,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
         {/* PAGE 1: COVER */}
         <div
           className="a4-page executive-cover bg-white flex flex-col relative overflow-hidden"
-          style={{ width: "210mm", minWidth: "210mm", height: "297mm", padding: 0 }}
+          style={{ width: "210mm", minWidth: "210mm", minHeight: "297mm", padding: 0 }}
         >
           {/* Top Green/Navy Accent Bar */}
           <div className="w-full h-4 bg-gradient-to-r from-[#002c5f] to-[#009539]" />
