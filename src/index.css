@@ -514,7 +514,7 @@ html, body {
     overflow: visible !important;
   }
   
-  header {
+  header, .scanline {
     display: none !important;
   }
   
@@ -538,6 +538,15 @@ html, body {
     padding: 0 !important;
     background: white !important;
     box-shadow: none !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+  
+  #view-report .w-full.mt-8 {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
   }
   
   /* Print Admin Table View */
@@ -724,12 +733,21 @@ html, body {
   }
   
   /* AI Report Page custom print rules */
-  .ai-report-page {
+  .a4-page.ai-report-page {
     height: auto !important;
-    min-height: 296.5mm !important;
+    min-height: 297mm !important;
     max-height: none !important;
     display: block !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    page-break-after: auto !important;
   }
+  
+  .ai-report-page * {
+    overflow: visible !important;
+    page-break-inside: auto !important;
+  }
+  
   .ai-report-page .bg-slate-900\/40 {
     background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
