@@ -1823,7 +1823,7 @@ export default function App() {
                   <div className="flex items-center gap-2 mb-2">
                     <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   </div>
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">인성검사 평가 결과</h1>
+                  <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">인성검사 평가 결과</h1>
                   <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest font-mono">Personality Assessment Report</p>
                 </div>
                 
@@ -1834,7 +1834,7 @@ export default function App() {
                   <div className="text-2xl font-black text-slate-900 leading-none mb-1">
                     {formatCandidateName(viewingResult.name)} <span className="text-lg text-slate-500 font-bold">({formatCandidateId(viewingResult.id)})</span>
                   </div>
-                  <div className="text-sm font-bold text-slate-600 font-mono">
+                  <div className="text-base font-bold text-slate-600 font-mono">
                     {getYYYYMMDD(viewingResult.date)} | {viewingResult.company}
                   </div>
                 </div>
@@ -1875,7 +1875,7 @@ export default function App() {
               {/* Main Content Area: Chart and Table */}
               <div className="flex-1 flex gap-4 min-h-0 mb-6">
                 <div className="w-[45%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-base font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-lg font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📊</span> 역량 프로파일
                   </h3>
                   <div className="flex-1 min-h-0 relative flex items-center justify-center">
@@ -1887,7 +1887,7 @@ export default function App() {
                 </div>
                 
                 <div className="w-[55%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-base font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-lg font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📋</span> 세부 지표 분석
                   </h3>
                   <div className="flex-1 flex flex-col justify-between">
@@ -1938,18 +1938,18 @@ export default function App() {
               {/* Text Comments Area */}
               <div className="grid grid-cols-2 gap-4 shrink-0 h-[190px]">
                 <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
-                  <h3 className="text-base font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">📌</span> 종합 판정 의견
                   </h3>
-                  <div className="flex-1 text-[12.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
+                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
                     <div dangerouslySetInnerHTML={{ __html: generateReportComment(viewingResult) }} />
                   </div>
                 </div>
                 <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
-                  <h3 className="text-base font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
                     <span className="text-blue-600">🔍</span> 응답 신뢰도 분석
                   </h3>
-                  <div className="flex-1 text-[12.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
+                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
                     <div dangerouslySetInnerHTML={{ __html: generateReliabilityComment(viewingResult) }} />
                   </div>
                 </div>
