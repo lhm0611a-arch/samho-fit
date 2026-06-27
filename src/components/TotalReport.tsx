@@ -614,7 +614,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
             }
             return a.id.localeCompare(b.id);
           });
-          const ITEMS_PER_PAGE = 20;
+          const ITEMS_PER_PAGE = 28;
           const chunks = [];
           for (let i = 0; i < sortedData.length; i += ITEMS_PER_PAGE) {
             chunks.push(sortedData.slice(i, i + ITEMS_PER_PAGE));
