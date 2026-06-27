@@ -1840,35 +1840,83 @@ export default function App() {
                 </div>
               </div>
 
-              {/* KPI Score Cards */}
-              <div className="grid grid-cols-4 gap-4 mb-6 shrink-0">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 점수</div>
-                  <div className="text-4xl font-black font-sans leading-none text-slate-900">{viewingResult.total}</div>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 등급</div>
-                  <div className="text-4xl font-black font-sans leading-none" style={{ 
-                    color: viewingResult.decision.includes("(S)") ? "#4f46e5" : 
-                           viewingResult.decision.includes("(A)") ? "#2563eb" : 
-                           viewingResult.decision.includes("(B1)") ? "#10b981" : 
-                           viewingResult.decision.includes("(B2)") ? "#fbbf24" : "#ef4444"
-                  }}>
-                    {viewingResult.decision.split(" ")[0]}
+              {/* KPI Score Cards & Guide */}
+              <div className="flex gap-4 mb-6 shrink-0 h-[88px]">
+                {/* 3 KPI Boxes */}
+                <div className="flex w-[45%] gap-4">
+                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 점수</div>
+                    <div className="text-4xl font-black font-sans leading-none text-slate-900">{viewingResult.total}</div>
+                  </div>
+                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 등급</div>
+                    <div className="text-4xl font-black font-sans leading-none" style={{ 
+                      color: viewingResult.decision.includes("(S)") ? "#4f46e5" : 
+                             viewingResult.decision.includes("(A)") ? "#2563eb" : 
+                             viewingResult.decision.includes("(B1)") ? "#10b981" : 
+                             viewingResult.decision.includes("(B2)") ? "#fbbf24" : "#ef4444"
+                    }}>
+                      {viewingResult.decision.split(" ")[0]}
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col items-center justify-center shadow-sm">
+                    <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">신뢰도 판별</div>
+                    <div className="text-3xl font-black font-sans leading-none" style={{ 
+                      color: viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" :
+                             viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444"
+                    }}>
+                      {viewingResult.reliability.split(" ")[0]}
+                    </div>
                   </div>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">신뢰도 판별</div>
-                  <div className="text-4xl font-black font-sans leading-none" style={{ 
-                    color: viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" :
-                           viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444"
-                  }}>
-                    {viewingResult.reliability.split(" ")[0]}
+
+                {/* 5 Grade Guide Boxes */}
+                <div className="flex w-[55%] gap-2">
+                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className="text-blue-700 font-black text-sm leading-none">S</span>
+                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">최우수</span>
+                    </div>
+                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
+                      조직/직무 역량 탁월<br/>(즉시 투입)
+                    </div>
                   </div>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">최저 세부점수</div>
-                  <div className="text-4xl font-black font-sans leading-none text-slate-700">{viewingResult.minScore}</div>
+                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className="text-blue-600 font-black text-sm leading-none">A</span>
+                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">우수</span>
+                    </div>
+                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
+                      전반적 역량 우수<br/>(채용 권장)
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className="text-emerald-600 font-black text-sm leading-none">B</span>
+                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">보통/관찰</span>
+                    </div>
+                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
+                      기본 소양 보유<br/>(채용/멘토링)
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className="text-orange-500 font-black text-sm leading-none">C</span>
+                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">검토/위험</span>
+                    </div>
+                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
+                      취약점/안전 낮음<br/>(심층검증/관리)
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-center items-center text-center shadow-sm">
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className="text-red-600 font-black text-sm leading-none">D</span>
+                      <span className="text-slate-700 font-bold text-[10px] leading-none mb-[1px]">부적격</span>
+                    </div>
+                    <div className="text-[8.5px] text-slate-600 leading-[1.3] tracking-tighter break-keep">
+                      부적응/불성실<br/>(채용 불가)
+                    </div>
+                  </div>
                 </div>
               </div>
 
