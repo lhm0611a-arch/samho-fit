@@ -500,8 +500,8 @@ html, body {
 
 /* Print specific rules */
 @page {
-  size: A4 portrait;
-  margin: 15mm 10mm;
+  size: A4;
+  margin: 0;
 }
 
 @media print {
@@ -522,14 +522,11 @@ html, body {
     display: none !important;
   }
   
-  .min-h-screen, .flex-grow {
+  #root > .min-h-screen {
     background: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
     height: auto !important;
     min-height: auto !important;
     overflow: visible !important;
-    align-items: flex-start !important;
     display: block !important;
   }
   
@@ -573,9 +570,9 @@ html, body {
     width: 210mm !important;
     min-width: 210mm !important;
     max-width: 210mm !important;
-    height: 297mm !important;
-    min-height: 297mm !important;
-    max-height: 297mm !important;
+    height: 296.5mm !important;
+    min-height: 296.5mm !important;
+    max-height: 296.5mm !important;
     margin: 0 auto !important;
     box-shadow: none !important;
     page-break-inside: avoid !important;
@@ -587,10 +584,16 @@ html, body {
     display: flex !important;
     flex-direction: column !important;
     box-sizing: border-box !important;
+    padding: 15mm 20mm !important;
+    overflow: hidden !important;
   }
   
   .a4-page:last-of-type {
     page-break-after: auto !important;
+  }
+  
+  .a4-page.executive-cover {
+    padding: 0 !important;
   }
   
   #view-report .a4-page {
@@ -599,6 +602,7 @@ html, body {
     max-height: none !important;
     page-break-inside: auto !important;
     page-break-after: auto !important;
+    overflow: visible !important;
   }
   
   .a4-page.ai-report-page {
