@@ -501,7 +501,7 @@ html, body {
 /* Print specific rules */
 @page {
   size: A4 portrait;
-  margin: 0;
+  margin: 15mm 10mm;
 }
 
 @media print {
