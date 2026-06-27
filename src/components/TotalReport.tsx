@@ -196,7 +196,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
   ];
 
   return (
-    <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen bg-slate-900 flex flex-col items-center overflow-x-auto text-slate-800">
+    <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto text-slate-800">
       <div className="no-print bg-white border border-blue-500/30 rounded-xl p-5 mb-8 text-slate-800 max-w-[210mm] w-full shadow-lg">
         <div className="flex items-center gap-3 mb-3 border-b border-slate-200 pb-2">
           <span className="text-xl">💡</span>
@@ -595,7 +595,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
               </thead>
               <tbody>
                 {companyStatsArray.map((stats, idx) => (
-                  <tr key={idx} className="bg-white hover:bg-slate-50">
+                  <tr key={idx} className="bg-white hover:bg-slate-50 break-inside-avoid">
                     <td className="border border-slate-200 p-3 font-bold text-slate-800">{stats.company}</td>
                     <td className="border border-slate-200 p-3 text-center font-bold text-slate-600">{stats.total}</td>
                     <td className="border border-slate-200 p-3 text-center font-black text-blue-700">{stats.pass > 0 ? stats.pass : "-"}</td>
@@ -677,7 +677,7 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
                   else if (code.includes("D")) gradeBadgeClass = "bg-red-500";
 
                   return (
-                    <tr key={d.id + d.name} className={rowClass}>
+                    <tr key={d.id + d.name} className={`${rowClass} break-inside-avoid`}>
                       <td className="p-2 border border-slate-200 font-bold text-slate-700 text-center">
                         {d.company || "-"}
                       </td>
