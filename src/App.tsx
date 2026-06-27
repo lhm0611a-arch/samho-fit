@@ -1805,7 +1805,7 @@ export default function App() {
 
           {/* Print/PDF Page layout */}
           <div id="view-report" className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center shadow-2xl">
-            <div className="a4-page overflow-visible bg-white p-[12mm_15mm] flex flex-col" style={{ width: "210mm", minWidth: "210mm", minHeight: "297mm" }}>
+            <div className="a4-page overflow-visible bg-white p-[12mm_15mm] flex flex-col">
               
               {/* Header */}
               <div className="report-header gap-4 border-b-[3px] border-[#002c5f] pb-3 mb-4 flex justify-between items-end">
