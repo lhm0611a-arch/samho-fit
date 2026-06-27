@@ -1805,53 +1805,51 @@ export default function App() {
 
           {/* Print/PDF Page layout */}
           <div id="view-report" className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center shadow-2xl">
+            {/* PAGE 1: New Recommended Layout */}
             <div 
-              className="a4-page bg-white flex flex-col overflow-hidden" 
+              className="a4-page bg-white flex flex-col" 
               style={{ 
                 width: "210mm", 
-                minWidth: "210mm", 
-                maxWidth: "210mm", 
                 height: "297mm", 
-                minHeight: "297mm", 
-                maxHeight: "297mm", 
-                padding: "12mm 15mm",
-                boxSizing: "border-box" 
+                padding: "15mm 15mm",
+                boxSizing: "border-box",
+                pageBreakAfter: "always",
+                overflow: "hidden"
               }}
             >
-              
-              {/* Header */}
-              <div className="report-header border-b-[3px] border-[#002c5f] pb-3 flex justify-between items-end flex-none h-[80px]">
-                <div className="flex-1">
-                  <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 mb-2 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
-                  <div className="hidden text-3xl font-black text-[#002c5f] font-sans tracking-tighter uppercase break-keep">HD HYUNDAI SAMHO</div>
-                  <div className="text-3xl font-black text-[#002c5f] font-sans">인성검사 평가 결과</div>
-                  <div className="text-xs font-bold text-slate-500 mt-1 tracking-widest font-mono">
-                    PERSONALITY ASSESSMENT REPORT
+              {/* Header: Title and Candidate Info */}
+              <div className="flex justify-between items-start border-b-[3px] border-slate-800 pb-4 mb-5 shrink-0">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-2">
+                    <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <span className="text-xl font-black text-slate-800 tracking-tighter uppercase">HD HYUNDAI SAMHO</span>
                   </div>
+                  <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-1">인성검사 평가 결과</h1>
+                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest font-mono">Personality Assessment Report</p>
                 </div>
-                <div className="text-right flex flex-col items-end justify-end max-w-[50%] pb-0.5">
-                  <div className="text-[10px] text-blue-700 bg-blue-100 px-2 py-0.5 rounded border border-blue-300 font-bold mb-1.5 font-mono tracking-widest shadow-sm">
+                
+                <div className="flex flex-col items-end text-right">
+                  <div className="bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded-sm font-bold tracking-widest font-mono mb-3">
                     OFFICIAL DOCUMENT
                   </div>
-                  <div className="text-xl font-black text-slate-900 font-sans leading-snug">
-                    {formatCandidateName(viewingResult.name)}{" "}
-                    <span className="text-base text-slate-500 font-bold">({formatCandidateId(viewingResult.id)})</span>
+                  <div className="text-2xl font-black text-slate-900 leading-none mb-1">
+                    {formatCandidateName(viewingResult.name)} <span className="text-lg text-slate-500 font-bold">({formatCandidateId(viewingResult.id)})</span>
                   </div>
-                  <div className="text-xs font-bold text-slate-600 font-mono mt-0.5">
+                  <div className="text-[11px] font-bold text-slate-600 font-mono">
                     {getYYYYMMDD(viewingResult.date)} | {viewingResult.company}
                   </div>
                 </div>
               </div>
 
               {/* KPI Score Cards */}
-              <div className="grid grid-cols-4 gap-3 mt-4 flex-none h-[90px]">
-                <div className="score-card highlight-card flex flex-col justify-center items-center p-3 h-full rounded-xl">
-                  <div className="label text-slate-500 font-extrabold text-[11px] mb-1">종합 점수</div>
-                  <div className="value font-sans font-black text-3xl text-slate-900 leading-none">{viewingResult.total}</div>
+              <div className="grid grid-cols-4 gap-4 mb-6 shrink-0">
+                <div className="bg-slate-800 text-white rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+                  <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">종합 점수</div>
+                  <div className="text-4xl font-black font-sans leading-none">{viewingResult.total}</div>
                 </div>
-                <div className="score-card flex flex-col justify-center items-center p-3 h-full rounded-xl">
-                  <div className="label text-slate-500 font-extrabold text-[11px] mb-1">종합 등급</div>
-                  <div className="value font-sans font-black text-3xl leading-none" style={{ 
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">종합 등급</div>
+                  <div className="text-4xl font-black font-sans leading-none" style={{ 
                     color: viewingResult.decision.includes("(S)") ? "#4f46e5" : 
                            viewingResult.decision.includes("(A)") ? "#2563eb" : 
                            viewingResult.decision.includes("(B1)") ? "#10b981" : 
@@ -1860,28 +1858,28 @@ export default function App() {
                     {viewingResult.decision.split(" ")[0]}
                   </div>
                 </div>
-                <div className="score-card flex flex-col justify-center items-center p-3 h-full rounded-xl">
-                  <div className="label text-slate-500 font-extrabold text-[11px] mb-1">신뢰도 판별</div>
-                  <div className="value font-sans font-black text-3xl leading-none" style={{ 
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">신뢰도 판별</div>
+                  <div className="text-4xl font-black font-sans leading-none" style={{ 
                     color: viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" :
                            viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444"
                   }}>
                     {viewingResult.reliability.split(" ")[0]}
                   </div>
                 </div>
-                <div className="score-card flex flex-col justify-center items-center p-3 h-full rounded-xl">
-                  <div className="label text-slate-500 font-extrabold text-[11px] mb-1">최저 세부점수</div>
-                  <div className="value text-slate-700 font-sans font-black text-3xl leading-none">{viewingResult.minScore}</div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center shadow-sm">
+                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">최저 세부점수</div>
+                  <div className="text-4xl font-black font-sans leading-none text-slate-700">{viewingResult.minScore}</div>
                 </div>
               </div>
 
-              {/* Charts & Detail metrics */}
-              <div className="grid grid-cols-2 gap-3 mt-4 flex-none h-[500px]">
-                <div className="flex flex-col h-full bg-white border border-slate-300 rounded-xl p-3 shadow-sm overflow-hidden">
-                  <div className="section-title font-display text-[0.95rem] mb-2 pb-1 border-b border-slate-200">
-                    <span>📊</span> 종합 역량 프로파일
-                  </div>
-                  <div className="flex-grow min-h-0 relative">
+              {/* Main Content Area: Chart and Table */}
+              <div className="flex-1 flex gap-4 min-h-0 mb-6">
+                <div className="w-[45%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <h3 className="text-sm font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span className="text-blue-600">📊</span> 역량 프로파일
+                  </h3>
+                  <div className="flex-1 min-h-0 relative flex items-center justify-center">
                     <MainChart
                       personalDetails={viewingResult.details}
                       averageDetails={averageStatistics}
@@ -1889,76 +1887,70 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="flex flex-col h-full bg-white border border-slate-300 rounded-xl p-3 shadow-sm overflow-hidden">
-                  <div className="section-title font-display text-[0.95rem] mb-2 pb-1 border-b border-slate-200">
-                    <span>📋</span> 세부 지표 분석
-                  </div>
-                  <div className="flex-grow flex flex-col justify-center overflow-hidden">
-                    <table className="score-table w-full">
-                      <tbody>
-                        {Object.keys(viewingResult.details).map((k) => {
-                          const s = viewingResult.details[k];
-                          const progressColor = s >= 80 ? "#3b82f6" : s >= 60 ? "#06b6d4" : "#f43f5e";
-                          const badgeClass =
-                            s >= 90
-                              ? "bg-indigo-600"
-                              : s >= 80
-                              ? "bg-blue-500"
-                              : s >= 60
-                              ? "bg-emerald-500"
-                              : s >= 40
-                              ? "bg-amber-500"
-                              : "bg-red-500";
-                          const gradeLetter = s >= 90 ? "S" : s >= 80 ? "A" : s >= 60 ? "B" : s >= 40 ? "C" : "D";
+                <div className="w-[55%] flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                  <h3 className="text-sm font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span className="text-blue-600">📋</span> 세부 지표 분석
+                  </h3>
+                  <div className="flex-1 flex flex-col justify-between">
+                    {Object.keys(viewingResult.details).map((k) => {
+                      const s = viewingResult.details[k];
+                      const progressColor = s >= 80 ? "#3b82f6" : s >= 60 ? "#06b6d4" : "#f43f5e";
+                      const badgeClass =
+                        s >= 90
+                          ? "bg-indigo-600"
+                          : s >= 80
+                          ? "bg-blue-500"
+                          : s >= 60
+                          ? "bg-emerald-500"
+                          : s >= 40
+                          ? "bg-amber-500"
+                          : "bg-red-500";
+                      const gradeLetter = s >= 90 ? "S" : s >= 80 ? "A" : s >= 60 ? "B" : s >= 40 ? "C" : "D";
 
-                          return (
-                            <tr key={k} className="h-[34px]">
-                              <td width="42%" className="font-bold text-slate-700 whitespace-nowrap py-0 text-[11px] leading-none">
-                                <span className="font-mono text-slate-400 text-[9.5px] mr-1.5 inline-block w-[18px]">
-                                  {k}
-                                </span>
-                                {MGMT_GUIDE[k]?.title || k}
-                              </td>
-                              <td width="15%" className="text-center py-0 leading-none">
-                                <span className={`inline-block w-[20px] h-[20px] leading-[20px] text-center rounded-full font-black text-[10px] text-white ${badgeClass} shadow-sm`}>
-                                  {gradeLetter}
-                                </span>
-                              </td>
-                              <td width="30%" className="py-0 leading-none">
-                                <div className="w-full bg-slate-100 border border-slate-200 h-2 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full rounded-full"
-                                    style={{ width: `${s}%`, backgroundColor: progressColor }}
-                                  />
-                                </div>
-                              </td>
-                              <td width="13%" className="font-extrabold text-right font-sans text-[11.5px] py-0 leading-none" style={{ color: progressColor }}>
-                                {s}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                      return (
+                        <div key={k} className="flex items-center text-[11px]">
+                          <div className="w-[120px] font-bold text-slate-700 whitespace-nowrap flex items-center">
+                            <span className="font-mono text-slate-400 text-[10px] w-6 inline-block">{k}</span>
+                            {MGMT_GUIDE[k]?.title || k}
+                          </div>
+                          <div className="w-[30px] flex justify-center">
+                            <span className={`inline-block w-5 h-5 leading-[20px] text-center rounded text-[10px] font-black text-white ${badgeClass}`}>
+                              {gradeLetter}
+                            </span>
+                          </div>
+                          <div className="flex-1 px-3">
+                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="h-full rounded-full"
+                                style={{ width: `${s}%`, backgroundColor: progressColor }}
+                              />
+                            </div>
+                          </div>
+                          <div className="w-[25px] font-extrabold text-right font-sans text-[12px]" style={{ color: progressColor }}>
+                            {s}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
-              {/* Text Comments */}
-              <div className="grid grid-cols-2 gap-3 mt-4 flex-none h-[210px]">
-                <div className="flex flex-col h-full bg-white border border-slate-300 rounded-xl p-3 shadow-sm overflow-hidden">
-                  <div className="section-title text-[0.95rem] font-display mb-1.5 pb-1 border-b border-slate-200">
-                    <span>📌</span> 종합 판정 의견
-                  </div>
-                  <div className="flex-grow text-[11.5px] md:text-[12px] leading-[1.6] text-slate-700 text-justify px-1 overflow-hidden flex items-center">
+              {/* Text Comments Area */}
+              <div className="grid grid-cols-2 gap-4 shrink-0 h-[190px]">
+                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
+                  <h3 className="text-sm font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span className="text-blue-600">📌</span> 종합 판정 의견
+                  </h3>
+                  <div className="flex-1 text-[11.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
                     <div dangerouslySetInnerHTML={{ __html: generateReportComment(viewingResult) }} />
                   </div>
                 </div>
-                <div className="flex flex-col h-full bg-white border border-slate-300 rounded-xl p-3 shadow-sm overflow-hidden">
-                  <div className="section-title text-[0.95rem] font-display mb-1.5 pb-1 border-b border-slate-200">
-                    <span>🔍</span> 응답 신뢰도 분석
-                  </div>
-                  <div className="flex-grow text-[11.5px] md:text-[12px] leading-[1.6] text-slate-700 text-justify px-1 overflow-hidden flex items-center">
+                <div className="flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm overflow-hidden">
+                  <h3 className="text-sm font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2">
+                    <span className="text-blue-600">🔍</span> 응답 신뢰도 분석
+                  </h3>
+                  <div className="flex-1 text-[11.5px] leading-relaxed text-slate-700 text-justify overflow-hidden flex items-center">
                     <div dangerouslySetInnerHTML={{ __html: generateReliabilityComment(viewingResult) }} />
                   </div>
                 </div>
