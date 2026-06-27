@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    
+    function incoming() { 
+      return request.resource.data; 
+    }
+
+    // The assessments are currently public for writing and reading in the dashboard
+    match /assessments/{assessmentId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false; // Assessments shouldn't be edited or deleted publicly
+    }
+  }
+}

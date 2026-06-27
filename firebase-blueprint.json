@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "Assessment": {
+      "title": "Assessment",
+      "description": "An assessment result.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "date": { "type": "string" },
+        "total": { "type": "number" },
+        "reliability": { "type": "string" },
+        "decision": { "type": "string" },
+        "minScore": { "type": "number" },
+        "isTooFast": { "type": "boolean" },
+        "source": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/assessments/{assessmentId}": {
+      "schema": { "$ref": "#/entities/Assessment" },
+      "description": "Assessments results."
+    }
+  }
+}

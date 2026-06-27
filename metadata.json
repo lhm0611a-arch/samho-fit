@@ -1,0 +1,6 @@
+{
+  "name": "HD Hyundai Samho E-7 Personality Assessment",
+  "description": "Professional high-performance E-7 Foreign Worker Personality Assessment system for HD Hyundai Samho with AI reporting and sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
