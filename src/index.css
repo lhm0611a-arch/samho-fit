@@ -568,7 +568,7 @@ html, body {
   
   .a4-page {
     width: 210mm !important;
-    height: 297mm !important;
+    height: 296.5mm !important;
     margin: 0 !important;
     box-shadow: none !important;
     page-break-inside: avoid !important;
@@ -627,17 +627,17 @@ html, body {
   .report-header .text-xs {
     font-size: 10px !important;
   }
+
+  /* We let inline and markup classes define score-card, chart-table-container and score-table sizes consistently */
   .score-card {
     background: #f8fafc !important;
     border: 1px solid #cbd5e1 !important;
     border-radius: 6px !important;
-    padding: 6px !important;
     text-align: center !important;
   }
   .score-card .label {
     color: #475569 !important;
     font-size: 10px !important;
-    margin-bottom: 2px !important;
   }
   .score-card .value {
     color: #002c5f !important;
@@ -655,86 +655,48 @@ html, body {
     color: #002c5f !important;
   }
   
-  /* Force 2-column grid layout for chart & table */
   .chart-table-container {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    margin-bottom: 8px !important;
-    min-height: 270px !important;
-    height: auto !important;
+    gap: 12px !important;
   }
   
-  /* Make chart container compact */
   .chart-table-container > div {
-    height: 100% !important;
-    min-height: 270px !important;
-    padding: 6px 8px !important;
     background: #fff !important;
     border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
   }
   
-  /* Force 2-column grid layout for comments */
   .text-comments-container {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    min-height: 120px !important;
-    height: auto !important;
+    gap: 12px !important;
   }
   
   .text-comments-container > div {
-    height: 100% !important;
-    min-height: 120px !important;
-    padding: 8px 12px !important;
     background: #fff !important;
     border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
   }
 
-  .text-comments-container > div > div.flex-grow {
-    font-size: 11px !important;
-    line-height: 1.5 !important;
-  }
-  
   .section-title {
     color: #002c5f !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     border-bottom: 1.5px solid #cbd5e1 !important;
     padding-bottom: 2px !important;
     margin-bottom: 4px !important;
   }
   
-  /* Canvas size */
-  #view-report canvas {
-    max-height: 180px !important;
-    height: 180px !important;
-    width: 100% !important;
-  }
-  
   /* score-table sizing */
   .score-table {
-    font-size: 9px !important;
-    border-spacing: 0 0px !important;
+    border-spacing: 0 !important;
   }
   .score-table td {
     background: #fff !important;
-    padding: 2px 4px !important;
-    border-top: 1px solid #f1f5f9 !important;
-    border-bottom: 1px solid #f1f5f9 !important;
     color: #1e293b !important;
   }
   .score-table tr td:first-child {
-    border-left: 1px solid #f1f5f9 !important;
     color: #1e293b !important;
-    font-size: 9px !important;
-  }
-  .score-table tr td:last-child {
-    border-right: 1px solid #f1f5f9 !important;
-  }
-  .score-table .grade-badge {
-    padding: 0px 3px !important;
-    font-size: 8px !important;
-    border-radius: 2px !important;
   }
   
   /* Force 2-column grid layout for comments */
@@ -764,7 +726,7 @@ html, body {
   /* AI Report Page custom print rules */
   .ai-report-page {
     height: auto !important;
-    min-height: 297mm !important;
+    min-height: 296.5mm !important;
     max-height: none !important;
     display: block !important;
   }
