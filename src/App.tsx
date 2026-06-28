@@ -886,7 +886,7 @@ export default function App() {
     <div className="flex flex-col min-h-screen relative z-0 bg-[#0c1424]">
       {/* Universal Faint Shipyard Background */}
       <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-15 pointer-events-none z-0 print:hidden" 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-[0.22] pointer-events-none z-0 print:hidden" 
         style={{ backgroundImage: "url('/yard.png')" }} 
       />
       <div className="grid-pattern flex flex-col min-h-screen relative z-10">
@@ -989,7 +989,7 @@ export default function App() {
             style={{ backgroundImage: "url('/yard.png')" }} 
           />
           {/* Overlay to darken background for readability */}
-          <div className="absolute inset-0 bg-[#001a38]/80 backdrop-blur-[2px] z-0" />
+          <div className="absolute inset-0 bg-[#001424]/55 backdrop-blur-[1.5px] z-0" />
           
           <div className="glass-premium cyber-bracket p-6 sm:p-10 md:p-16 max-w-2xl w-full text-center relative z-10 shadow-2xl border-t-4 border-t-[#009539]">
             {/* System Admin Access buttons (Top-Right inside the box) */}
@@ -1068,8 +1068,8 @@ export default function App() {
 
       {/* ----------------- VIEW: LOGIN ----------------- */}
       {currentView === "login" && (
-        <div className="flex-grow flex flex-col items-center justify-center p-4 min-h-screen">
-           <div className="bg-[#0f172a]/95 backdrop-blur-xl border border-slate-700/50 shadow-2xl rounded-2xl p-6 sm:p-10 max-w-lg w-full relative overflow-hidden">
+        <div className="flex-grow flex flex-col items-center justify-center p-4 min-h-screen relative overflow-hidden">
+           <div className="glass-premium cyber-bracket p-6 sm:p-10 max-w-lg w-full relative overflow-hidden shadow-2xl">
             {/* Subtle background glow */}
             <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
             
@@ -1278,7 +1278,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <div className="border-2 border-cyan-400 bg-slate-950/90 px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-3 rounded flex items-center gap-2 sm:gap-3 glow-cyan shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+              <div className="border border-cyan-400/40 bg-[#0a101d]/65 backdrop-blur-md px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 md:py-3 rounded flex items-center gap-2 sm:gap-3 glow-cyan shadow-[0_0_15px_rgba(34,211,238,0.25)]">
                 <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-cyan-400 rounded-full animate-pulse" />
                 <span className={`font-mono text-lg sm:text-xl md:text-2xl tracking-wider font-black ${remainingTime <= 300 ? "text-red-400 animate-pulse" : "text-cyan-200"}`}>
                   {String(Math.floor(remainingTime / 60)).padStart(2, "0")}:{String(remainingTime % 60).padStart(2, "0")}
