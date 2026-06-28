@@ -14,7 +14,11 @@ import {
   LogOut, 
   Calendar, 
   Award, 
-  AlertCircle 
+  AlertCircle,
+  Home,
+  FileText,
+  PlayCircle,
+  ShieldCheck
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import QRCode from "qrcode";
@@ -1019,85 +1023,96 @@ export default function App() {
 
       {/* ----------------- VIEW: HOME ----------------- */}
       {currentView === "home" && (
-        <div className="fixed inset-0 flex flex-col items-center justify-center p-4 z-20 overflow-hidden">
-          {/* Background image yard.png */}
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0 opacity-[0.55] filter brightness-110 contrast-125 mix-blend-screen" 
-            style={{ backgroundImage: "url('/yard.png')" }} 
-          />
-          {/* Overlay to darken background for readability */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-[#030305]/60 to-[#030305]/20 z-0" />
-          
-          <div className="glass-premium cyber-bracket p-6 sm:p-10 md:p-16 max-w-2xl w-full text-center relative z-10 shadow-[0_0_15px_rgba(59,130,246,0.1)] border-t border-t-blue-500/50">
-            {/* System Admin Access buttons (Top-Right inside the box) */}
-            <div className="absolute top-4 right-4 z-50 hidden lg:flex bg-black/40 border border-white/10 p-1.5 rounded-xl gap-1.5 shadow-lg backdrop-blur-md">
-              <button
-                onClick={() => setCurrentView("admin-login")}
-                className="bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 text-[10px] sm:text-[11px] rounded text-white font-extrabold transition flex items-center gap-1.5 cursor-pointer"
-              >
-                <Shield className="w-3 h-3 text-blue-400" />
-                SYS_ADMIN
-              </button>
-              <button
-                onClick={handleShowQRCode}
-                className="bg-white/5 hover:bg-white/10 border border-white/10 px-2 py-1 text-[10px] sm:text-[11px] rounded text-white font-extrabold transition flex items-center gap-1.5 justify-center cursor-pointer"
-              >
-                <QrCode className="w-3 h-3 text-cyan-400" />
-                QR_LINK
-              </button>
+        <div className="flex-grow flex flex-col items-center p-4 sm:p-6 md:p-10 min-h-screen relative overflow-hidden z-20">
+          {/* Top Header */}
+          <header className="w-full flex justify-between items-center z-50 mb-auto max-w-7xl mx-auto">
+            <div className="flex items-center gap-3">
+               <button className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all cursor-pointer">
+                 <Home className="w-5 h-5" />
+               </button>
+               <div className="flex items-center gap-2">
+                 <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-6 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
+                 <span className="hidden text-white font-bold tracking-widest ml-1">HD HYUNDAI SAMHO</span>
+                 <span className="text-white font-bold tracking-widest ml-1">인성검사 시스템</span>
+               </div>
+            </div>
+            <div className="flex items-center gap-3">
+               {/* admin button replacing 직원 명부 */}
+               <button
+                  onClick={() => setCurrentView("admin-login")}
+                  className="bg-[#009539] hover:bg-[#008030] text-white px-4 py-2 rounded-full font-bold text-sm transition-all shadow-[0_0_15px_rgba(0,149,57,0.3)] flex items-center gap-2 cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  관리자 시스템
+                </button>
+                <button
+                  onClick={handleShowQRCode}
+                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  <QrCode className="w-4 h-4" />
+                </button>
+            </div>
+          </header>
+
+          <main className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center flex-grow z-10 gap-6 mt-10">
+            {/* Hero Card */}
+            <div className="w-full h-80 sm:h-[400px] rounded-3xl relative overflow-hidden flex flex-col items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+               <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/yard.png')" }} />
+               <div className="absolute inset-0 bg-gradient-to-t from-[#030305] via-[#030305]/70 to-[#030305]/30" />
+               
+               <div className="relative z-10 flex flex-col items-center text-center p-6 mt-8">
+                 <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(59,130,246,0.5)]">
+                   <FileText className="w-8 h-8 text-white" />
+                 </div>
+                 <div className="text-cyan-400 font-mono text-[10px] sm:text-xs tracking-[0.2em] mb-3 font-bold uppercase">
+                   [ SYSTEM GATEWAY CORE V4.0 ]
+                 </div>
+                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight mb-4 font-display drop-shadow-md">
+                   E-7 외국인 근로자 인성검사
+                 </h1>
+                 <p className="text-slate-300 text-sm sm:text-base font-medium">
+                   간단한 기본 정보 입력 후 검사를 시작하실 수 있습니다.
+                 </p>
+               </div>
             </div>
 
-            <div className="relative z-10 mb-6 sm:mb-10">
-              <div className="inline-flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-blue-500/30 mb-6 sm:mb-8 shadow-sm">
-                <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                <span className="text-[10px] font-mono text-blue-400 tracking-[0.2em] font-bold">HR_EVALUATION_SYSTEM</span>
-              </div>
-              
-              <div className="mb-6 sm:mb-8 border-b border-white/10 pb-6 flex flex-col items-center justify-center">
-                <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 sm:h-12 md:h-14 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
-                <div id="fallback-logo" className="hidden text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-widest mt-3">
-                  HD HYUNDAI SAMHO
-                </div>
-              </div>
-              
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-black text-white mb-3 sm:mb-4 tracking-tight leading-tight break-keep font-display">
-                E-7 외국인 근로자 인성검사
-                <span className="text-blue-400 font-display font-bold tracking-widest mt-3 block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl drop-shadow-md">
-                  PERSONALITY ASSESSMENT
-                </span>
-              </h1>
-              <p className="text-blue-500/70 text-[10px] sm:text-xs font-mono tracking-widest mt-5 sm:mt-8 uppercase font-extrabold">BUILD V40.DX_PRO</p>
-            </div>
-
-            <div className="relative z-10 flex flex-col gap-4 max-w-[280px] sm:max-w-xs mx-auto w-full">
+            {/* Action Cards */}
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
               <button
                 onClick={handleInitializeSystem}
-                className="btn-premium w-full py-3 sm:py-4 text-[15px] tracking-widest flex items-center justify-center gap-3"
+                className="bg-black/40 backdrop-blur-md border border-white/10 hover:border-blue-500/50 hover:bg-white/5 transition-all rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center group cursor-pointer h-56"
               >
-                <span>시작하기</span>
-                <ArrowRight className="w-4 h-4 text-white animate-bounce-horizontal" />
+                <div className="mb-4">
+                  <PlayCircle className="w-12 h-12 text-blue-400 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">검사 시작하기</h2>
+                <p className="text-slate-500 text-xs font-mono tracking-widest uppercase">START EVALUATION</p>
               </button>
-              <div className="flex justify-center gap-2 mt-2">
-                {["KO", "VN", "ID", "EN", "NP"].map((l) => (
-                  <span key={l} className="py-1 rounded bg-white/5 border border-white/10 text-[10px] text-slate-300 font-mono font-bold shadow-sm inline-block w-[40.3333px] text-center">
-                    {l}
-                  </span>
-                ))}
-              </div>
+              
+              <button
+                onClick={() => setCurrentView("admin-login")}
+                className="bg-black/40 backdrop-blur-md border border-white/10 hover:border-emerald-500/50 hover:bg-white/5 transition-all rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center group cursor-pointer h-56"
+              >
+                <div className="mb-4">
+                  <ShieldCheck className="w-12 h-12 text-emerald-400 group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">관리자 시스템</h2>
+                <p className="text-slate-500 text-xs font-mono tracking-widest uppercase">SYSTEM DASHBOARD</p>
+              </button>
             </div>
-
-            <div className="relative z-10 mt-8 sm:mt-12 pt-6 border-t border-slate-700/50 flex justify-between items-center text-[9px] sm:text-[10px] font-mono text-slate-400 tracking-[0.2em]">
-              <div className="flex items-center gap-2">
-                <span className="text-[#009539]">●</span>
-                <span>LOCAL_DB: <span className="text-white font-bold">{localData.length}</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {isOnline ? (
-                  <span className="text-blue-500">SECURE CONNECTION (ONLINE)</span>
-                ) : (
-                  <span className="text-red-500 animate-pulse font-bold">OFFLINE MODE ACTIVATED</span>
-                )}
-              </div>
+          </main>
+          
+          <div className="relative z-10 mt-auto pt-6 w-full max-w-5xl mx-auto flex justify-between items-center text-[9px] sm:text-[10px] font-mono text-slate-400 tracking-[0.2em]">
+            <div className="flex items-center gap-2">
+              <span className="text-[#009539]">●</span>
+              <span>LOCAL_DB: <span className="text-white font-bold">{localData.length}</span></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {isOnline ? (
+                <span className="text-blue-500">SECURE CONNECTION (ONLINE)</span>
+              ) : (
+                <span className="text-red-500 animate-pulse font-bold">OFFLINE MODE ACTIVATED</span>
+              )}
             </div>
           </div>
         </div>
