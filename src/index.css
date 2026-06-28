@@ -1,117 +1,844 @@
-import React, { useState } from "react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import { formatCandidateId, formatCandidateName } from "../utils/calculations";
+@import "tailwindcss";
 
-interface AIReportProps {
-  data: {
-    id: string;
-    name: string;
-    company: string;
-    date: string;
-    total: number;
-    reliability: string;
-    decision: string;
-    details: Record<string, number>;
-    answers?: Record<number, number>;
-  };
-  onScaleUpdate?: () => void;
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Noto Sans KR", sans-serif;
+  --font-display: "Space Grotesk", "Noto Sans KR", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-hd-blue: #002c5f;
+  --color-hd-green: #009539;
+  --color-dx-dark: #05050a;
+  --color-dx-accent: #0ea5e9;
+  --color-dx-highlight: #38bdf8;
 }
 
-export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
-  const [loading, setLoading] = useState<boolean>(false);
-  const [aiText, setAiText] = useState<string>("");
-  const [errorMsg, setErrorMsg] = useState<string>("");
+/* Base Styles */
+html, body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  overscroll-behavior-y: none;
+  background-color: #f8fafc;
+  color: #0f172a;
+  min-height: 100vh;
+}
 
-  const handleGenerateAIReport = async () => {
-    setLoading(true);
-    setErrorMsg("");
-    try {
-      const response = await fetch("/api/generate-ai-report", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(17, 24, 39, 0.4);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.6);
+}
 
-      const resJson = await response.json();
-      if (!response.ok || resJson.error) {
-        throw new Error(resJson.message || "Failed to generate AI report");
-      }
+/* Glassmorphism */
+.glass {
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
-      setAiText(resJson.text || "");
-      
-      // Trigger scaling adjustments if necessary
-      setTimeout(() => {
-        if (onScaleUpdate) onScaleUpdate();
-      }, 300);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || "오류가 발생했습니다. 잠시 후 다시 시도하십시오.");
-    } finally {
-      setLoading(false);
-    }
-  };
+.glass-premium {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px) saturate(200%);
+  border: 1.5px solid rgba(56, 189, 248, 0.5);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  return (
-    <div className="w-full mt-8">
-      {aiText ? (
-        <div className="a4-page ai-report-page break-after-page overflow-visible bg-white" style={{ width: "210mm", minWidth: "210mm", height: "auto", minHeight: "297mm", padding: "15mm 20mm", marginTop: "24px" }}>
-          <div className="report-header gap-4 border-b-[3px] border-[#002c5f] pb-4 mb-6 flex justify-between items-end">
-            <div className="flex-1">
-              <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 mb-3 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
-              <div className="hidden text-xs font-mono text-[#002c5f] font-bold tracking-widest mb-1">HD HYUNDAI SAMHO DX_PRO</div>
-              <div className="text-3xl font-black text-[#002c5f] font-sans leading-tight tracking-tighter">AI 심층 분석 리포트</div>
-            </div>
-            <div className="text-right flex flex-col items-end justify-end max-w-[50%]">
-              <div className="text-[21px] font-black text-slate-800 font-sans break-keep leading-snug">
-                {formatCandidateName(data.name)} <span className="text-[17px] text-slate-500 font-bold">({formatCandidateId(data.id)})</span>
-              </div>
-              <div className="text-[16px] font-bold text-slate-500 font-mono mt-1">
-                {data.company}
-              </div>
-            </div>
-          </div>
-          <div className="bg-slate-50 rounded-xl border border-slate-200 p-6 ai-markdown flex-grow text-slate-700">
-            <div className="markdown-body">
-              <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{aiText}</Markdown>
-            </div>
-          </div>
-          <div className="mt-8 pt-4 border-t border-gray-100 text-center text-xs text-gray-400 font-bold tracking-[0.2em] font-sans">
-            HD HYUNDAI CONFIDENTIAL • DO NOT DISTRIBUTE
-          </div>
-        </div>
-      ) : (
-        <div className="text-center no-print my-6">
-          {errorMsg && (
-            <p className="text-red-500 text-sm mb-4 font-bold font-sans">
-              ⚠️ {errorMsg}
-            </p>
-          )}
-          <button
-            onClick={handleGenerateAIReport}
-            disabled={loading}
-            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black py-4 px-10 rounded-xl shadow-lg transition-all hover:shadow-cyan-500/30 inline-flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <span className="animate-pulse">✨ AI 딥러닝 분석 중... (약 10초)</span>
-              </>
-            ) : (
-              <>
-                <span>✨</span>
-                <span className="text-[15px]">AI 심층 분석 리포트 생성</span>
-              </>
-            )}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
+.glass-premium:hover {
+  border-color: rgba(56, 189, 248, 0.8);
+  box-shadow: 0 10px 40px rgba(59, 130, 246, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+/* Cyber Glows */
+.glow-cyan {
+  box-shadow: 0 0 35px rgba(6, 182, 212, 0.25);
+}
+.glow-blue {
+  box-shadow: 0 0 40px rgba(59, 130, 246, 0.25);
+}
+.glow-text-cyan {
+  text-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+}
+.glow-text-blue {
+  text-shadow: 0 0 15px rgba(59, 130, 246, 0.7);
+}
+
+/* Cyber Grid Background */
+.grid-pattern {
+  background-image: 
+    linear-gradient(rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  position: relative;
+}
+
+.grid-pattern::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Scanline Effect */
+.scanline {
+  width: 100%;
+  height: 4px;
+  position: fixed;
+  left: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(6, 182, 212, 0.15), transparent);
+  animation: scan 6s linear infinite;
+  opacity: 0.5;
+}
+
+@keyframes scan {
+  0% { transform: translateY(-20vh); }
+  100% { transform: translateY(120vh); }
+}
+
+/* Cyber Corner Decorations */
+.cyber-bracket {
+  position: relative;
+}
+.cyber-bracket::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 15px;
+  height: 15px;
+  border-top: 2px solid #3b82f6;
+  border-left: 2px solid #3b82f6;
+  pointer-events: none;
+}
+.cyber-bracket::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  border-bottom: 2px solid #06b6d4;
+  border-right: 2px solid #06b6d4;
+  pointer-events: none;
+}
+
+/* Buttons */
+.btn-premium {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(2, 6, 23, 0.8) 100%);
+  border: 1px solid #0ea5e9;
+  color: #38bdf8;
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.1), inset 0 0 10px rgba(14, 165, 233, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.btn-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: skewX(-20deg);
+  transition: 0.5s;
+}
+
+.btn-premium:hover::before {
+  left: 150%;
+}
+
+.btn-premium:hover {
+  background: rgba(14, 165, 233, 0.25);
+  border-color: #fff;
+  box-shadow: 0 0 25px rgba(14, 165, 233, 0.4), inset 0 0 15px rgba(14, 165, 233, 0.4);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.btn-premium:active {
+  transform: translateY(1px);
+}
+
+/* System Inputs */
+.system-input {
+  background: rgba(10, 10, 16, 0.6) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  color: #fff !important;
+  border-radius: 4px !important;
+  border-left: 3px solid #3b82f6 !important;
+  transition: all 0.3s;
+}
+
+.system-input:focus {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  outline: none;
+}
+
+/* Language Selection buttons */
+.lang-btn-premium {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.lang-btn-premium:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.lang-btn-premium.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #60a5fa;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), inset 0 0 10px rgba(59, 130, 246, 0.2);
+  transform: scale(1.05);
+}
+
+/* Likert Scales */
+.likert-input:checked + label {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+  color: #ffffff !important;
+  border-color: #22d3ee !important;
+  transform: scale(1.1) translateY(-5px);
+  box-shadow: 0 10px 25px rgba(6, 182, 212, 0.6) !important;
+}
+
+.likert-number-btn {
+  border-radius: 12px !important;
+  border: 2px solid rgba(255, 255, 255, 0.4) !important;
+  background: rgba(15, 23, 42, 0.95) !important;
+  color: #ffffff !important;
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.likert-number-btn:hover {
+  border-color: #22d3ee !important;
+  color: #22d3ee !important;
+  background: rgba(34, 211, 238, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+/* A4 Page Formatting for Reports */
+.a4-page {
+  width: 100%;
+  max-width: 100%;
+  min-height: auto;
+  padding: 16px;
+  margin: 0 auto;
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  color: #0f172a;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  border-radius: 12px;
+}
+
+@media (min-width: 640px) {
+  .a4-page {
+    padding: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  .a4-page {
+    padding: 32px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .a4-page {
+    padding: 40px;
+  }
+}
+
+.report-header {
+  border-bottom: 3px solid #002c5f;
+  padding-bottom: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.report-header .text-3xl {
+  color: #002c5f !important;
+}
+
+.report-header .text-xl {
+  color: #002c5f !important;
+}
+
+.score-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.score-card .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.score-card .value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #002c5f;
+  line-height: 1.1;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.score-card.highlight-card {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.score-card.highlight-card .label {
+  color: #334155 !important;
+}
+
+.score-card.highlight-card .value {
+  color: #0f172a !important;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #002c5f;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid #cbd5e1;
+}
+
+.section-title span {
+  background: #f1f5f9;
+  color: #002c5f;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.score-table {
+  width: 100%;
+  font-size: 0.75rem;
+  border-collapse: separate;
+  border-spacing: 0 2px;
+}
+
+.score-table td {
+  background: transparent;
+  padding: 4px 8px;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+  color: #334155;
+}
+
+.score-table tr td:first-child {
+  border-left: 1px solid #e2e8f0;
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.score-table tr td:last-child {
+  border-right: 1px solid #e2e8f0;
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.grade-badge {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: 0.75rem;
+  color: white;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.grade-S { background-color: #4f46e5; }
+.grade-A { background-color: #3b82f6; }
+.grade-B { background-color: #10b981; }
+.grade-C { background-color: #f59e0b; }
+.grade-D { background-color: #ef4444; }
+
+/* Markdown Styling for Report Page */
+.ai-markdown {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  color: #334155;
+  text-align: justify;
+  word-break: keep-all;
+}
+
+.ai-markdown h2 {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin-top: 1.5rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1.5px solid #cbd5e1;
+  padding-bottom: 8px;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.ai-markdown h3 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #002c5f;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.ai-markdown h3::before {
+  content: '▶';
+  margin-right: 6px;
+  color: #3b82f6;
+  font-size: 0.8rem;
+}
+
+.ai-markdown blockquote {
+  border-left: 4px solid #3b82f6;
+  background: #f1f5f9;
+  padding: 1rem 1.5rem;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.ai-markdown ul {
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.ai-markdown li {
+  margin-bottom: 0.5rem;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.ai-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  page-break-inside: auto;
+  break-inside: auto;
+}
+
+.ai-markdown tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.ai-markdown th {
+  background-color: #e2e8f0;
+  padding: 12px;
+  font-weight: 800;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  text-align: center !important;
+}
+
+.ai-markdown td {
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.ai-markdown td:first-child {
+  font-weight: 700;
+  background-color: #f8fafc;
+  text-align: center !important;
+  word-break: keep-all;
+  min-width: 130px;
+}
+
+.ai-markdown td:first-child strong {
+  text-align: center;
+  display: block;
+}
+
+.ai-markdown th:first-child {
+  width: 120px;
+}
+
+.ai-markdown th:nth-child(2) {
+  width: 225px;
+}
+
+.ai-markdown table:nth-of-type(3) th:nth-child(2) {
+  width: 378px;
+}
+
+#print-table-view {
+  display: none;
+}
+
+/* Print specific rules */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@page ai-report {
+  size: A4;
+  margin: 15mm 0;
+}
+
+@page total-report-list {
+  size: A4;
+  margin: 15mm 0;
+}
+
+@media print {
+  body, html, #root {
+    background: white !important;
+    height: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  
+  #root * {
+    overflow: visible !important;
+  }
+
+  /* Force block layout on main containers to prevent flexbox from breaking pagination */
+  #root > div,
+  #root > div > div {
+    display: block !important;
+    height: auto !important;
+    min-height: auto !important;
+  }
+  
+  header, .scanline {
+    display: none !important;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .min-h-screen, .flex-grow, .grid-pattern, body > div, main, main > div {
+    background: white !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    display: block !important;
+  }
+  
+  #view-report, #view-total-report {
+    display: block !important;
+    position: relative !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+  
+  #view-report .w-full.mt-8 {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    page-break-before: always !important;
+  }
+  
+  /* Print Admin Table View */
+  #print-table-view {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  #print-table-view table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  #print-table-view th, #print-table-view td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 4px 6px !important;
+    font-size: 11px !important;
+    color: black !important;
+  }
+  #print-table-view th {
+    background: #f1f5f9 !important;
+    font-weight: bold !important;
+  }
+  
+  .a4-page {
+    width: 210mm !important;
+    height: 296.5mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    page-break-after: always !important;
+    background: white !important;
+    color: #0f172a !important;
+    border: none !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+    padding: 15mm 20mm !important;
+    overflow: hidden !important;
+  }
+  
+  .a4-page:last-of-type {
+    page-break-after: auto !important;
+  }
+  
+  .a4-page.executive-cover {
+    padding: 0 !important;
+  }
+  
+  #view-report > .a4-page:first-of-type {
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    page-break-inside: avoid !important;
+    page-break-after: always !important;
+    overflow: hidden !important;
+  }
+
+  .a4-page.ai-report-page {
+    height: auto !important;
+    max-height: none !important;
+    display: block !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    page-break-after: auto !important;
+  }
+  .report-header {
+    border-bottom: 2px solid #002c5f !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 10px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-end !important;
+  }
+  .report-header div, .report-header span {
+    color: #002c5f !important;
+  }
+  .report-header .text-3xl {
+    font-size: 20px !important;
+  }
+  .report-header .text-xl {
+    font-size: 15px !important;
+  }
+  .report-header .text-xs {
+    font-size: 10px !important;
+  }
+
+  /* We let inline and markup classes define score-card, chart-table-container and score-table sizes consistently */
+  .score-card {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    text-align: center !important;
+  }
+  .score-card .label {
+    color: #475569 !important;
+    font-size: 10px !important;
+  }
+  .score-card .value {
+    color: #002c5f !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+  }
+  .score-card.highlight-card {
+    background: #f1f5f9 !important;
+    border-color: #002c5f !important;
+  }
+  .score-card.highlight-card .label {
+    color: #1e3a8a !important;
+  }
+  .score-card.highlight-card .value {
+    color: #002c5f !important;
+  }
+  
+  .chart-table-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  
+  .chart-table-container > div {
+    background: #fff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+  }
+  
+  .text-comments-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  
+  .text-comments-container > div {
+    background: #fff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+  }
+
+  .section-title {
+    color: #002c5f !important;
+    font-size: 12px !important;
+    border-bottom: 1.5px solid #cbd5e1 !important;
+    padding-bottom: 2px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  /* score-table sizing */
+  .score-table {
+    border-spacing: 0 !important;
+  }
+  .score-table td {
+    background: #fff !important;
+    color: #1e293b !important;
+  }
+  .score-table tr td:first-child {
+    color: #1e293b !important;
+  }
+  
+  /* Force 2-column grid layout for comments */
+  .text-comments-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    padding-top: 6px !important;
+    border-top: 1.5px solid #cbd5e1 !important;
+  }
+  
+  .text-comments-grid > div {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .text-comments-grid .bg-slate-900\/40 {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    font-size: 10px !important;
+    line-height: 1.35 !important;
+    color: #334155 !important;
+  }
+  
+  /* AI Report Page custom print rules */
+  .a4-page.ai-report-page {
+    page: ai-report !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    display: block !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    page-break-after: auto !important;
+    margin: 0 !important;
+    padding: 0 20mm !important;
+  }
+  
+  .total-report-flowing-page {
+    page: total-report-list !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    display: block !important;
+    overflow: visible !important;
+    page-break-inside: auto !important;
+    page-break-after: auto !important;
+    margin: 0 !important;
+    padding: 0 20mm !important;
+  }
+
+  .ai-report-page * {
+    overflow: visible !important;
+  }
+  
+  .ai-report-page .bg-slate-900\/40 {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    padding: 15px !important;
+  }
+  
+  /* General print colors fallback */
+  .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400 {
+    color: #1e293b !important;
+  }
+  
+  /* Print colors adjustment */
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}
+
