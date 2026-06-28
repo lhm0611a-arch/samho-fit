@@ -15,6 +15,7 @@ export interface AssessmentResult {
   isTooFast?: boolean;
   source: string;
   lang?: string;
+  docId?: string;
   diagnosis?: {
     l1: number;
     l2: number;
