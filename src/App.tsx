@@ -886,7 +886,7 @@ export default function App() {
     <div className="flex flex-col min-h-screen relative z-0 bg-[#0c1424]">
       {/* Universal Faint Shipyard Background */}
       <div 
-        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-[0.22] pointer-events-none z-0 print:hidden" 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-[0.35] pointer-events-none z-0 print:hidden" 
         style={{ backgroundImage: "url('/yard.png')" }} 
       />
       <div className="grid-pattern flex flex-col min-h-screen relative z-10">
