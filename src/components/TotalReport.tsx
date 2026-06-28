@@ -632,9 +632,10 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
                     </td>
                   </tr>
                   <tr className="bg-slate-100 border-y-2 border-slate-300 font-bold text-slate-600 uppercase">
-                    <th className="py-2 px-2 border border-slate-200 text-center w-[15%]">업체명</th>
-                    <th className="py-2 px-2 border border-slate-200 text-center w-[10%]">ID</th>
-                    <th className="py-2 px-2 border border-slate-200 text-center w-[20%]">성명</th>
+                    <th className="py-2 px-2 border border-slate-200 text-center w-[12%]">업체명</th>
+                    <th className="py-2 px-2 border border-slate-200 text-center w-[8%]">ID</th>
+                    <th className="py-2 px-2 border border-slate-200 text-center w-[15%]">성명</th>
+                    <th className="py-2 px-2 border border-slate-200 text-center w-[10%]">국가</th>
                     <th className="py-2 px-2 border border-slate-200 text-center w-[10%]">점수</th>
                     <th className="py-2 px-2 border border-slate-200 text-center w-[10%]">등급</th>
                     <th className="py-2 px-2 border border-slate-200 text-center w-[10%]">신뢰도</th>
@@ -687,6 +688,9 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
                         </td>
                         <td className="py-1.5 px-2 border border-slate-200 font-bold text-slate-800 text-center">
                           {d.name}
+                        </td>
+                        <td className="py-1.5 px-2 border border-slate-200 text-slate-600 font-bold text-center uppercase">
+                          {d.lang || "N/A"}
                         </td>
                         <td className="py-1.5 px-2 border border-slate-200 text-center font-bold text-blue-700">
                           {d.total}
