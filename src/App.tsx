@@ -379,6 +379,7 @@ export default function App() {
       reliability: finalReliability,
       isTooFast,
       source: "기기 직접 응시",
+      lang: lang,
     };
 
     // 1. Save locally
@@ -1030,9 +1031,11 @@ export default function App() {
                 <span className="text-[10px] font-mono text-white tracking-[0.2em] font-bold">HR_EVALUATION_SYSTEM</span>
               </div>
               
-              <div className="mb-6 sm:mb-8 border-b border-white/20 pb-6 flex justify-center">
-                <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 sm:h-12 md:h-14 lg:h-16 object-contain filter drop-shadow-xl" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
-                <div className="hidden text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-widest">
+              <div className="mb-6 sm:mb-8 border-b border-white/20 pb-6 flex flex-col items-center justify-center">
+                <div className="bg-white/95 px-6 py-2.5 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] inline-block">
+                  <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 sm:h-12 md:h-14 lg:h-16 object-contain" onError={(e) => { e.currentTarget.parentElement!.style.display = 'none'; document.getElementById('fallback-logo')!.classList.remove('hidden'); }} />
+                </div>
+                <div id="fallback-logo" className="hidden text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-widest mt-3">
                   HD HYUNDAI SAMHO
                 </div>
               </div>
@@ -1055,7 +1058,7 @@ export default function App() {
                 <ArrowRight className="w-4 h-4 text-white animate-bounce-horizontal" />
               </button>
               <div className="flex justify-center gap-2 mt-2">
-                {["KO", "VN", "ID", "EN"].map((l) => (
+                {["KO", "VN", "ID", "EN", "NP"].map((l) => (
                   <span key={l} className="py-1 rounded bg-white/5 border border-white/10 text-[10px] text-slate-300 font-mono font-bold shadow-sm inline-block w-[40.3333px] text-center">
                     {l}
                   </span>
@@ -1103,7 +1106,7 @@ export default function App() {
                 <label className="block text-[11px] font-bold text-slate-400 mb-3 tracking-wider text-center uppercase">
                   {UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].langSelect}
                 </label>
-                <div className="flex justify-center gap-2">
+                <div className="flex flex-wrap justify-center gap-2">
                   {[
                     { id: "kr", flagCode: "kr", label: "KOR" },
                     { id: "vn", flagCode: "vn", label: "VIE" },
@@ -1635,21 +1638,27 @@ export default function App() {
                     </th>
                     <th
                       onClick={() => triggerSort("company")}
-                      className="px-3 py-4 text-center w-[15%] cursor-pointer hover:text-blue-400 select-none group"
+                      className="px-3 py-4 text-center w-[12%] cursor-pointer hover:text-blue-400 select-none group"
                     >
                       COMPANY {sortKey === "company" && (sortOrder === "asc" ? "▲" : "▼")}
                     </th>
                     <th
                       onClick={() => triggerSort("id")}
-                      className="px-3 py-4 text-center w-[12%] cursor-pointer hover:text-blue-400 select-none group"
+                      className="px-3 py-4 text-center w-[10%] cursor-pointer hover:text-blue-400 select-none group"
                     >
                       ID {sortKey === "id" && (sortOrder === "asc" ? "▲" : "▼")}
                     </th>
                     <th
                       onClick={() => triggerSort("name")}
-                      className="px-3 py-4 text-center w-[18%] cursor-pointer hover:text-blue-400 select-none group"
+                      className="px-3 py-4 text-center w-[14%] cursor-pointer hover:text-blue-400 select-none group"
                     >
                       NAME {sortKey === "name" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+                    <th
+                      onClick={() => triggerSort("lang")}
+                      className="px-3 py-4 text-center w-[8%] cursor-pointer hover:text-blue-400 select-none group"
+                    >
+                      NATION {sortKey === "lang" && (sortOrder === "asc" ? "▲" : "▼")}
                     </th>
                     <th
                       onClick={() => triggerSort("date")}
@@ -1659,7 +1668,7 @@ export default function App() {
                     </th>
                     <th
                       onClick={() => triggerSort("total")}
-                      className="px-3 py-4 text-center w-[10%] cursor-pointer hover:text-blue-400 select-none group"
+                      className="px-3 py-4 text-center w-[8%] cursor-pointer hover:text-blue-400 select-none group"
                     >
                       SCORE {sortKey === "total" && (sortOrder === "asc" ? "▲" : "▼")}
                     </th>
@@ -1671,11 +1680,11 @@ export default function App() {
                     </th>
                     <th
                       onClick={() => triggerSort("decision")}
-                      className="px-3 py-4 text-center w-[10%] cursor-pointer hover:text-blue-400 select-none group"
+                      className="px-3 py-4 text-center w-[9%] cursor-pointer hover:text-blue-400 select-none group"
                     >
                       GRADE {sortKey === "decision" && (sortOrder === "asc" ? "▲" : "▼")}
                     </th>
-                    <th className="px-3 py-4 text-center w-[10%]">ACTION</th>
+                    <th className="px-3 py-4 text-center w-[12%]">ACTION</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-transparent font-medium text-xs text-slate-800">
@@ -1709,6 +1718,9 @@ export default function App() {
                         </td>
                         <td className="px-3 py-3.5 text-center font-black text-slate-900">
                           {formatCandidateName(r.name)}
+                        </td>
+                        <td className="px-3 py-3.5 text-center text-slate-600 font-bold uppercase">
+                          {r.lang ? r.lang.toUpperCase() : "N/A"}
                         </td>
                         <td className="px-3 py-3.5 text-center text-slate-600 font-mono">
                           {getYYYYMMDD(r.date)}
@@ -1855,7 +1867,7 @@ export default function App() {
                     {formatCandidateName(viewingResult.name)} <span className="text-lg text-slate-500 font-bold">({formatCandidateId(viewingResult.id)})</span>
                   </div>
                   <div className="text-[17px] font-bold text-slate-600 font-mono">
-                    {getYYYYMMDD(viewingResult.date)} | {viewingResult.company}
+                    {getYYYYMMDD(viewingResult.date)} | {viewingResult.company} | NATION: {viewingResult.lang ? viewingResult.lang.toUpperCase() : "N/A"}
                   </div>
                 </div>
               </div>
