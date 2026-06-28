@@ -95,6 +95,20 @@ const UI_TEXT = {
     abort: "ABORT",
     proceed: "PROCEED",
     langSelect: "SELECT LANGUAGE"
+  },
+  np: {
+    title: "उम्मेदवार जानकारी",
+    companyLabel: "कम्पनीको नाम (COMPANY / AGENCY)",
+    firstNameLabel: "पहिलो नाम (FIRST NAME)",
+    lastNameLabel: "थर (LAST NAME)",
+    idLabel: "उम्मेदवार आईडी (CANDIDATE ID)",
+    companyPlaceholder: "कम्पनीको नाम प्रविष्ट गर्नुहोस्",
+    firstNamePlaceholder: "उदाहरण: राम",
+    lastNamePlaceholder: "उदाहरण: शर्मा",
+    idPlaceholder: "उदाहरण: TM-001, A-01",
+    abort: "रद्द गर्नुहोस् (ABORT)",
+    proceed: "अगाडि बढ्नुहोस् (PROCEED)",
+    langSelect: "भाषा छान्नुहोस् (SELECT LANGUAGE)"
   }
 };
 
@@ -1095,6 +1109,7 @@ export default function App() {
                     { id: "vn", flagCode: "vn", label: "VIE" },
                     { id: "id", flagCode: "id", label: "INA" },
                     { id: "en", flagCode: "us", label: "ENG" },
+                    { id: "np", flagCode: "np", label: "NEP" },
                   ].map((item) => (
                     <button
                       key={item.id}
@@ -1185,6 +1200,7 @@ export default function App() {
                     const msg = lang === "kr" ? "성명, 수험번호, 업체명을 모두 입력해주세요." : 
                                 lang === "vn" ? "Vui lòng nhập đầy đủ tên, số báo danh và tên công ty." :
                                 lang === "id" ? "Harap masukkan nama, nomor peserta, dan nama perusahaan." :
+                                lang === "np" ? "कृपया आफ्नो नाम, आईडी, र कम्पनीको नाम प्रविष्ट गर्नुहोस्।" :
                                 "Please enter your name, ID, and company name.";
                     showToast(msg, "error");
                     return;
@@ -1298,7 +1314,7 @@ export default function App() {
             <div className="w-full glass-premium cyber-bracket p-4 sm:p-8 md:p-12 lg:p-16 text-center flex flex-col justify-between min-h-[300px] sm:min-h-[380px] max-w-4xl">
               <div className="flex-grow flex flex-col justify-center items-center">
                 <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white mb-4 md:mb-6 leading-snug sm:leading-tight break-keep font-sans drop-shadow-lg">
-                  {lang === "vn" ? activeQuestion.vn : lang === "en" ? activeQuestion.en : lang === "id" ? activeQuestion.ind : activeQuestion.kr}
+                  {lang === "vn" ? activeQuestion.vn : lang === "en" ? activeQuestion.en : lang === "id" ? activeQuestion.ind : lang === "np" ? activeQuestion.np : activeQuestion.kr}
                 </h2>
                 {lang !== "kr" && (
                   <p className="text-slate-200 font-bold text-xs sm:text-sm md:text-base border-t border-slate-700/80 pt-4 sm:pt-5 mt-2 px-2 sm:px-4 break-keep font-sans">
@@ -1315,6 +1331,7 @@ export default function App() {
                     kr: ["전혀\n그렇지 않다", "그렇지\n않은 편이다", "보통이다", "그런\n편이다", "매우\n그렇다"],
                     en: ["Strongly\nDisagree", "Disagree", "Neutral", "Agree", "Strongly\nAgree"],
                     id: ["Sangat Tidak\nSetuju", "Tidak\nSetuju", "Netral", "Setuju", "Sangat\nSetuju"],
+                    np: ["बिल्कुल\nअसहमत", "असहमत", "तटस्थ", "सहमत", "पूर्ण\nसहमत"],
                   };
                   const lbls = labels[lang] || labels.kr;
                   return (
