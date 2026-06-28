@@ -14,6 +14,7 @@ export interface AssessmentResult {
   answers: Record<number, number>;
   isTooFast?: boolean;
   source: string;
+  lang?: string;
   diagnosis?: {
     l1: number;
     l2: number;
