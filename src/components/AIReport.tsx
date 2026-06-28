@@ -15,6 +15,7 @@ interface AIReportProps {
     decision: string;
     details: Record<string, number>;
     answers?: Record<number, number>;
+    lang?: string;
   };
   onScaleUpdate?: () => void;
 }
@@ -70,7 +71,7 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
                 {formatCandidateName(data.name)} <span className="text-[17px] text-slate-500 font-bold">({formatCandidateId(data.id)})</span>
               </div>
               <div className="text-[16px] font-bold text-slate-500 font-mono mt-1">
-                {data.company}
+                {data.company} | NATION: {data.lang ? data.lang.toUpperCase() : "N/A"}
               </div>
             </div>
           </div>
