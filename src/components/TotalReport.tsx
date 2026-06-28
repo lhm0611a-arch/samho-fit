@@ -196,34 +196,26 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
   ];
 
   return (
-    <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto text-slate-300 print:overflow-visible print:p-0 print:m-0 print:block">
-      <div className="no-print bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-6 mb-8 text-slate-300 max-w-[210mm] w-full shadow-[0_0_15px_rgba(59,130,246,0.1)] cyber-bracket">
-        <div className="flex items-center gap-3 mb-4 border-b border-white/10 pb-3">
+    <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto text-slate-800 print:overflow-visible print:p-0 print:m-0 print:block">
+      <div className="no-print bg-white border border-blue-500/30 rounded-xl p-5 mb-8 text-slate-800 max-w-[210mm] w-full shadow-lg">
+        <div className="flex items-center gap-3 mb-3 border-b border-slate-200 pb-2">
           <span className="text-xl">💡</span>
-          <h3 className="font-bold text-base text-cyan-400 tracking-widest">인쇄 및 PDF 저장 가이드</h3>
+          <h3 className="font-bold text-base text-blue-600">인쇄 및 PDF 저장 가이드</h3>
         </div>
-        <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-400 leading-relaxed pl-1 font-mono">
+        <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed pl-1">
           <li>
-            <strong className="text-white font-sans">배경 그래픽 포함:</strong> 인쇄 설정에서 '배경
+            <strong className="text-slate-900">배경 그래픽 포함:</strong> 인쇄 설정에서 '배경
             그래픽' 옵션을 반드시 활성화해야 표지와 스타일이 정상적으로 출력됩니다.
           </li>
           <li>
-            <strong className="text-white font-sans">A4 용지 규격:</strong> 본 보고서는 A4 용지
-            크기(210mm x 297mm)에 맞게 다중 페이지로 나뉘어 출력되도록
+            <strong className="text-slate-900">A4 용지 규격:</strong> 본 보고서는 A4 용지
+            크기(210mm x 297mm)에 맞게 3페이지(표지, 종합요약, 대상자명단)로 나뉘어 출력되도록
             최적화되어 있습니다.
           </li>
         </ul>
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="bg-black/60 border border-white/10 hover:bg-white/10 text-white px-4 py-2 rounded-xl font-mono text-xs transition-all cursor-pointer font-bold"
-          >
-            BACK TO DASHBOARD
-          </button>
-        </div>
       </div>
 
-      <div id="view-total-report" className="min-w-[210mm] w-[210mm] mx-auto bg-transparent relative flex flex-col items-center">
+      <div id="view-total-report" className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center">
         {/* PAGE 1: COVER */}
         <div className="a4-page executive-cover bg-white flex flex-col relative overflow-hidden" style={{ minHeight: "297mm", height: "297mm" }}>
           {/* Top Green/Navy Accent Bar */}
