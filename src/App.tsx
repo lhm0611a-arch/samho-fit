@@ -997,7 +997,7 @@ export default function App() {
 
       {/* ----------------- VIEW: HOME ----------------- */}
       {currentView === "home" && (
-        <div className="flex-grow flex flex-col items-center justify-center p-4 min-h-screen relative overflow-hidden">
+        <div className="fixed inset-0 flex flex-col items-center justify-center p-4 z-20 overflow-hidden">
           {/* Background image yard.png */}
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0" 
@@ -1032,9 +1032,7 @@ export default function App() {
               </div>
               
               <div className="mb-6 sm:mb-8 border-b border-white/20 pb-6 flex flex-col items-center justify-center">
-                <div className="bg-white/95 px-6 py-2.5 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.1)] inline-block">
-                  <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 sm:h-12 md:h-14 lg:h-16 object-contain" onError={(e) => { e.currentTarget.parentElement!.style.display = 'none'; document.getElementById('fallback-logo')!.classList.remove('hidden'); }} />
-                </div>
+                <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 sm:h-12 md:h-14 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
                 <div id="fallback-logo" className="hidden text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-widest mt-3">
                   HD HYUNDAI SAMHO
                 </div>
