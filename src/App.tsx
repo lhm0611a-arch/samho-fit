@@ -35,7 +35,7 @@ import { MainChart } from "./components/MainChart";
 import { AIReport } from "./components/AIReport";
 import { TotalReport } from "./components/TotalReport";
 import { firestoreDb } from "./firebase";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, deleteDoc } from "firebase/firestore";
 
 const LOCAL_DB_KEY = "HD_E7_FINAL_V30";
 
@@ -470,7 +470,8 @@ export default function App() {
           if (data && data.name && data.id) {
             syncedRecords.push({
               ...data,
-              source: "클라우드(Firebase)"
+              source: "클라우드(Firebase)",
+              docId: doc.id
             });
           }
         });
@@ -578,7 +579,12 @@ export default function App() {
     let list = [...mergedData];
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      list = list.filter((d) => d.name.toLowerCase().includes(q) || d.id.toLowerCase().includes(q));
+      list = list.filter((d) => 
+        d.name.toLowerCase().includes(q) || 
+        d.id.toLowerCase().includes(q) || 
+        (d.company || "").toLowerCase().includes(q) || 
+        (d.lang || "").toLowerCase().includes(q)
+      );
     }
     if (filterDate) {
       list = list.filter((d) => getYYYYMMDD(d.date) === filterDate);
@@ -642,15 +648,28 @@ export default function App() {
     }
 
     setConfirmModal({
-      message: `선택한 ${selectedIds.length}개 항목을 로컬 데이터에서 삭제하시겠습니까?`,
-      onConfirm: () => {
+      message: `선택한 ${selectedIds.length}개 항목을 삭제하시겠습니까?`,
+      onConfirm: async () => {
         const remainingLocal = localData.filter((d) => !selectedIds.includes(d.id));
         const remainingFile = fileData.filter((d) => !selectedIds.includes(d.id));
+        
+        // Find if any are from Firestore and delete them
+        const firestoreRecordsToDelete = sheetData.filter((d) => selectedIds.includes(d.id) && d.docId);
+        for (const record of firestoreRecordsToDelete) {
+          try {
+            await deleteDoc(doc(firestoreDb, "assessments", record.docId!));
+          } catch (e) {
+            console.error("Failed to delete from Firestore", e);
+          }
+        }
+        const remainingSheet = sheetData.filter((d) => !selectedIds.includes(d.id));
+
         setLocalData(remainingLocal);
         setFileData(remainingFile);
+        setSheetData(remainingSheet);
         localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(remainingLocal));
         setSelectedIds([]);
-        showToast("선택된 내역이 로컬 데이터에서 완전히 삭제되었습니다.");
+        showToast("선택된 내역이 완전히 삭제되었습니다.");
         setConfirmModal(null);
       },
     });
@@ -796,6 +815,7 @@ export default function App() {
     const worksheetData = filteredData.map((d) => {
       const flat = {
         업체명: d.company,
+        국가: (d.lang || "N/A").toUpperCase(),
         수험번호: formatCandidateId(d.id),
         성명: formatCandidateName(d.name),
         응시일자: d.date,
@@ -1529,33 +1549,6 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
-                    const isInIframe = window.self !== window.top;
-                    if (isInIframe) {
-                      setConfirmModal({
-                        message: `💡 [안내] 현재 미리보기 화면(iframe) 내부에서는 브라우저 보안 정책에 의해 인쇄창 로드가 차단될 수 있습니다.\n\n해결 방법:\n1. 우측 상단의 '새 탭에서 열기' (↗) 버튼을 클릭해 주세요.\n2. 새 탭에서 다시 [PRINT TABLE]을 누르면 정상적으로 작동합니다.\n\n이대로 진행해 보시겠습니까?`,
-                        onConfirm: () => {
-                          setConfirmModal(null);
-                          showToast("인쇄 신호를 전송합니다...");
-                          setTimeout(() => {
-                            window.focus();
-                            window.print();
-                          }, 300);
-                        }
-                      });
-                      return;
-                    }
-                    showToast("다수 인원 종합평가표 인쇄를 준비합니다...");
-                    setTimeout(() => {
-                      window.focus();
-                      window.print();
-                    }, 500);
-                  }}
-                  className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded font-mono text-xs shadow-md transition cursor-pointer font-bold"
-                >
-                  PRINT TABLE
-                </button>
-                <button
-                  onClick={() => {
                     setCurrentView("total-report");
                   }}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded font-mono text-xs shadow-md transition cursor-pointer font-bold"
@@ -1602,7 +1595,7 @@ export default function App() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 rounded border border-slate-300 bg-white outline-none focus:border-slate-400 font-sans text-xs text-slate-900 placeholder-slate-400 shadow-sm"
-                    placeholder="Search candidate name or ID..."
+                    placeholder="Search name, ID, company, nation..."
                   />
                   <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                 </div>
@@ -1635,6 +1628,18 @@ export default function App() {
                       />
                     </th>
                     <th
+                      onClick={() => triggerSort("date")}
+                      className="px-3 py-4 text-center w-[12%] cursor-pointer hover:text-blue-400 select-none group"
+                    >
+                      DATE {sortKey === "date" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+                    <th
+                      onClick={() => triggerSort("lang")}
+                      className="px-3 py-4 text-center w-[8%] cursor-pointer hover:text-blue-400 select-none group"
+                    >
+                      NATION {sortKey === "lang" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+                    <th
                       onClick={() => triggerSort("company")}
                       className="px-3 py-4 text-center w-[12%] cursor-pointer hover:text-blue-400 select-none group"
                     >
@@ -1651,18 +1656,6 @@ export default function App() {
                       className="px-3 py-4 text-center w-[14%] cursor-pointer hover:text-blue-400 select-none group"
                     >
                       NAME {sortKey === "name" && (sortOrder === "asc" ? "▲" : "▼")}
-                    </th>
-                    <th
-                      onClick={() => triggerSort("lang")}
-                      className="px-3 py-4 text-center w-[8%] cursor-pointer hover:text-blue-400 select-none group"
-                    >
-                      NATION {sortKey === "lang" && (sortOrder === "asc" ? "▲" : "▼")}
-                    </th>
-                    <th
-                      onClick={() => triggerSort("date")}
-                      className="px-3 py-4 text-center w-[12%] cursor-pointer hover:text-blue-400 select-none group"
-                    >
-                      DATE {sortKey === "date" && (sortOrder === "asc" ? "▲" : "▼")}
                     </th>
                     <th
                       onClick={() => triggerSort("total")}
@@ -1708,6 +1701,12 @@ export default function App() {
                             className="w-4 h-4 cursor-pointer accent-blue-600 rounded border-slate-300"
                           />
                         </td>
+                        <td className="px-3 py-3.5 text-center text-slate-600 font-mono">
+                          {getYYYYMMDD(r.date)}
+                        </td>
+                        <td className="px-3 py-3.5 text-center text-slate-600 font-bold uppercase">
+                          {r.lang ? r.lang.toUpperCase() : "N/A"}
+                        </td>
                         <td className="px-3 py-3.5 text-center text-slate-600 font-bold whitespace-nowrap overflow-hidden text-ellipsis">
                           {r.company}
                         </td>
@@ -1716,12 +1715,6 @@ export default function App() {
                         </td>
                         <td className="px-3 py-3.5 text-center font-black text-slate-900">
                           {formatCandidateName(r.name)}
-                        </td>
-                        <td className="px-3 py-3.5 text-center text-slate-600 font-bold uppercase">
-                          {r.lang ? r.lang.toUpperCase() : "N/A"}
-                        </td>
-                        <td className="px-3 py-3.5 text-center text-slate-600 font-mono">
-                          {getYYYYMMDD(r.date)}
                         </td>
                         <td className="px-3 py-3.5 text-center font-black font-display text-blue-600 text-sm">
                           {r.total}
