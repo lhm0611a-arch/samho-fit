@@ -17,12 +17,31 @@
         "source": { "type": "string" },
         "timestamp": { "type": "string" }
       }
+    },
+    "QRToken": {
+      "title": "QRToken",
+      "description": "A 24-hour access token for personality test entrance.",
+      "type": "object",
+      "properties": {
+        "token": { "type": "string" },
+        "code": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "expiresAt": { "type": "string" },
+        "createdTimestamp": { "type": "number" },
+        "expiresTimestamp": { "type": "number" },
+        "title": { "type": "string" },
+        "isActive": { "type": "boolean" }
+      }
     }
   },
   "firestore": {
     "/assessments/{assessmentId}": {
       "schema": { "$ref": "#/entities/Assessment" },
       "description": "Assessments results."
+    },
+    "/qr_tokens/{tokenId}": {
+      "schema": { "$ref": "#/entities/QRToken" },
+      "description": "QR access tokens with 24-hour expiration."
     }
   }
 }

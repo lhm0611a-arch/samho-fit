@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, setLogLevel } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyC_fQq_qdlXbJ8BwBY1Zqq4Ljq2r_eJZmQ",
@@ -11,14 +11,17 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:482301380709:web:af5f8cad74ff0873471e8c"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const app = initializeApp(firebaseConfig);
+export const DATABASE_ID = import.meta.env.VITE_FIREBASE_DATABASE_ID || "ai-studio-hdhyundaisamhoe7-96fa749c-627d-4eb8-9077-f1dccc79da5c";
 
-// Use custom database ID from config
-// Since standard getFirestore doesn't take databaseId in the same way directly without admin, 
-// wait, Firebase v10 client SDK does support it if you initialize it. 
-// However, the databaseId is ai-studio-hdhyundaisamhoe7-96fa749c-627d-4eb8-9077-f1dccc79da5c.
-// Actually, getFirestore(app, "ai-studio-hdhyundaisamhoe7-96fa749c-627d-4eb8-9077-f1dccc79da5c")
-// Let's configure the exact DB ID.
+// Suppress benign internal gRPC idle stream cancellation notices
+setLogLevel("error");
 
-export const firestoreDb = getFirestore(app, import.meta.env.VITE_FIREBASE_DATABASE_ID || "ai-studio-hdhyundaisamhoe7-96fa749c-627d-4eb8-9077-f1dccc79da5c");
+export const firestoreDb = initializeFirestore(
+  app,
+  {
+    experimentalAutoDetectLongPolling: true,
+  },
+  DATABASE_ID
+);
+

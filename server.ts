@@ -1,5 +1,8 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
+import { initializeApp as initFirebaseApp } from "firebase/app";
+import { getFirestore as initFirestore, collection, getDocs, addDoc, doc, deleteDoc, updateDoc, query, where } from "firebase/firestore";
 import { GoogleGenAI } from "@google/genai";
 import { QUESTIONS_FULL, MGMT_GUIDE } from "./src/questions";
 
@@ -9,8 +12,420 @@ const PORT = 3000;
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// Initialize Server-side Firebase Firestore instance
+let serverFirestoreDb: any = null;
+try {
+  const configPath = path.join(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    const serverApp = initFirebaseApp(config, "serverAdminApp");
+    serverFirestoreDb = initFirestore(serverApp, config.firestoreDatabaseId || "ai-studio-hdhyundaisamhoe7-96fa749c-627d-4eb8-9077-f1dccc79da5c");
+    console.log("Server Firestore instance connected successfully");
+  }
+} catch (e) {
+  console.warn("Failed to init server Firestore instance:", e);
+}
+
+// 0. Firestore Server Endpoints (100% Reliable, zero client-side blocker)
+app.get("/api/firestore-data", async (req, res) => {
+  try {
+    if (!serverFirestoreDb) {
+      return res.json([]);
+    }
+    const snap = await getDocs(collection(serverFirestoreDb, "assessments"));
+    const list: any[] = [];
+    snap.forEach((d) => {
+      list.push({ docId: d.id, ...d.data() });
+    });
+    res.json(list);
+  } catch (error: any) {
+    console.error("Firestore GET Error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+app.post("/api/firestore-data", async (req, res) => {
+  try {
+    if (!serverFirestoreDb) {
+      return res.status(500).json({ error: true, message: "Firestore not initialized" });
+    }
+    const payload = req.body;
+    const docRef = await addDoc(collection(serverFirestoreDb, "assessments"), {
+      ...payload,
+      timestamp: new Date().toISOString()
+    });
+    res.json({ success: true, docId: docRef.id });
+  } catch (error: any) {
+    console.error("Firestore POST Error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+app.put("/api/firestore-data/:id", async (req, res) => {
+  try {
+    if (!serverFirestoreDb) {
+      return res.status(500).json({ error: true, message: "Firestore not initialized" });
+    }
+    const docId = req.params.id;
+    const updates = req.body;
+    await updateDoc(doc(serverFirestoreDb, "assessments", docId), updates);
+    res.json({ success: true, docId });
+  } catch (error: any) {
+    console.error("Firestore PUT Error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+// Update by candidate ID or custom query
+app.post("/api/firestore-data/update-by-query", async (req, res) => {
+  try {
+    if (!serverFirestoreDb) {
+      return res.status(500).json({ error: true, message: "Firestore not initialized" });
+    }
+    const { candidateId, updates } = req.body;
+    if (!candidateId || !updates) {
+      return res.status(400).json({ error: true, message: "candidateId and updates required" });
+    }
+    const q = query(collection(serverFirestoreDb, "assessments"), where("id", "==", candidateId));
+    const snapshot = await getDocs(q);
+    const updatedIds: string[] = [];
+    for (const docItem of snapshot.docs) {
+      await updateDoc(doc(serverFirestoreDb, "assessments", docItem.id), updates);
+      updatedIds.push(docItem.id);
+    }
+    res.json({ success: true, updatedCount: updatedIds.length, updatedIds });
+  } catch (error: any) {
+    console.error("Firestore Query Update Error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+app.delete("/api/firestore-data/:id", async (req, res) => {
+  try {
+    if (!serverFirestoreDb) {
+      return res.status(500).json({ error: true, message: "Firestore not initialized" });
+    }
+    const docId = req.params.id;
+    await deleteDoc(doc(serverFirestoreDb, "assessments", docId));
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Firestore DELETE Error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+// --- 24-Hour QR Access Token Management Endpoints ---
+interface QRTokenItem {
+  docId?: string;
+  token: string;
+  code: string;
+  title: string;
+  company?: string;
+  examDate?: string;
+  createdAt: string;
+  expiresAt: string;
+  createdTimestamp: number;
+  expiresTimestamp: number;
+  isActive: boolean;
+  usedCount: number;
+}
+
+const QR_STORAGE_FILE = path.join(process.cwd(), "qr_tokens_cache.json");
+let localQrTokens: QRTokenItem[] = [];
+try {
+  if (fs.existsSync(QR_STORAGE_FILE)) {
+    localQrTokens = JSON.parse(fs.readFileSync(QR_STORAGE_FILE, "utf-8"));
+  }
+} catch (e) {
+  localQrTokens = [];
+}
+
+const saveLocalQrTokens = () => {
+  try {
+    fs.writeFileSync(QR_STORAGE_FILE, JSON.stringify(localQrTokens, null, 2), "utf-8");
+  } catch (e) {
+    console.warn("Failed to write local QR storage:", e);
+  }
+};
+
+function generateQrTokenData(title?: string, company?: string, examDate?: string): QRTokenItem {
+  const now = Date.now();
+  const expiresTimestamp = now + 24 * 60 * 60 * 1000; // Exact 24 Hours
+  const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const code = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit access code fallback
+  const token = `HD-QR-${new Date(now).toISOString().slice(0,10).replace(/-/g,"")}-${randomSuffix}`;
+  const targetCompany = company?.trim() || "HD현대삼호 협력사";
+  const targetDate = examDate?.trim() || new Date(now).toISOString().slice(0, 10);
+
+  return {
+    token,
+    code,
+    title: title || `${targetCompany} E-7 인성검사 (${targetDate})`,
+    company: targetCompany,
+    examDate: targetDate,
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(expiresTimestamp).toISOString(),
+    createdTimestamp: now,
+    expiresTimestamp: expiresTimestamp,
+    isActive: true,
+    usedCount: 0
+  };
+}
+
+// 1. Get currently active QR token or create one if none exists
+app.get("/api/qr-tokens/active", async (req, res) => {
+  try {
+    const now = Date.now();
+    let activeToken: any = null;
+
+    // A. Check from Firestore
+    if (serverFirestoreDb) {
+      try {
+        const snap = await getDocs(collection(serverFirestoreDb, "qr_tokens"));
+        const list: any[] = [];
+        snap.forEach((d) => {
+          list.push({ docId: d.id, ...d.data() });
+        });
+        
+        // Find valid active tokens sorted by createdAt desc
+        const validTokens = list
+          .filter((t) => t.isActive !== false && t.expiresTimestamp > now)
+          .sort((a, b) => (b.createdTimestamp || 0) - (a.createdTimestamp || 0));
+
+        if (validTokens.length > 0) {
+          activeToken = validTokens[0];
+        }
+      } catch (err) {
+        console.warn("Firestore active QR fetch warning:", err);
+      }
+    }
+
+    // B. Check from Local Cache if not found in Firestore
+    if (!activeToken) {
+      const validLocal = localQrTokens
+        .filter((t) => t.isActive !== false && t.expiresTimestamp > now)
+        .sort((a, b) => b.createdTimestamp - a.createdTimestamp);
+      if (validLocal.length > 0) {
+        activeToken = validLocal[0];
+      }
+    }
+
+    // C. If no active token exists at all, automatically issue a new initial 24h token
+    if (!activeToken) {
+      activeToken = generateQrTokenData();
+      localQrTokens.unshift(activeToken);
+      saveLocalQrTokens();
+
+      if (serverFirestoreDb) {
+        try {
+          const docRef = await addDoc(collection(serverFirestoreDb, "qr_tokens"), activeToken);
+          activeToken.docId = docRef.id;
+        } catch (e) {
+          console.warn("Failed to auto-persist initial QR token:", e);
+        }
+      }
+    }
+
+    const remainingMs = Math.max(0, activeToken.expiresTimestamp - now);
+    res.json({
+      success: true,
+      token: activeToken,
+      remainingMs,
+      remainingHours: (remainingMs / (1000 * 60 * 60)).toFixed(1),
+      isExpired: remainingMs <= 0
+    });
+  } catch (error: any) {
+    console.error("Active QR error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+// 2. Generate a new 24-hour QR token (Admin Triggered with company and examDate)
+app.post("/api/qr-tokens/generate", async (req, res) => {
+  try {
+    const { title, company, examDate } = req.body || {};
+    const newToken = generateQrTokenData(title, company, examDate);
+
+    // Save to local cache
+    localQrTokens.unshift(newToken);
+    saveLocalQrTokens();
+
+    // Save to Firestore
+    if (serverFirestoreDb) {
+      try {
+        const docRef = await addDoc(collection(serverFirestoreDb, "qr_tokens"), newToken);
+        newToken.docId = docRef.id;
+      } catch (e) {
+        console.warn("Failed to save QR token to Firestore:", e);
+      }
+    }
+
+    res.json({
+      success: true,
+      token: newToken,
+      remainingMs: 24 * 60 * 60 * 1000,
+      message: "새로운 24시간 인성검사 QR 코드가 발급되었습니다."
+    });
+  } catch (error: any) {
+    console.error("Generate QR error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+// 3. Verify a QR token or 6-digit access code (Used by candidate entrance)
+app.post("/api/qr-tokens/verify", async (req, res) => {
+  try {
+    const { token, code } = req.body || {};
+    const queryVal = (token || code || "").trim();
+    if (!queryVal) {
+      return res.status(400).json({
+        valid: false,
+        reason: "EMPTY",
+        message: "QR 코드 접속 정보가 필요합니다."
+      });
+    }
+
+    const now = Date.now();
+    let foundToken: any = null;
+
+    // Look up in Firestore first
+    if (serverFirestoreDb) {
+      try {
+        const snap = await getDocs(collection(serverFirestoreDb, "qr_tokens"));
+        snap.forEach((d) => {
+          const data = d.data();
+          if (data.token === queryVal || data.code === queryVal) {
+            foundToken = { docId: d.id, ...data };
+          }
+        });
+      } catch (e) {
+        console.warn("Firestore verify query error:", e);
+      }
+    }
+
+    // Look up in local cache
+    if (!foundToken) {
+      foundToken = localQrTokens.find((t) => t.token === queryVal || t.code === queryVal);
+    }
+
+    if (!foundToken && queryVal.startsWith("HD-QR-")) {
+      foundToken = localQrTokens.find((t) => t.token === queryVal);
+    }
+
+    if (!foundToken) {
+      return res.status(404).json({
+        valid: false,
+        reason: "NOT_FOUND",
+        message: "유효하지 않은 QR 코드입니다."
+      });
+    }
+
+    if (foundToken.isActive === false) {
+      return res.status(403).json({
+        valid: false,
+        reason: "REVOKED",
+        message: "만료 또는 파괴된 QR 코드입니다."
+      });
+    }
+
+    if (now > foundToken.expiresTimestamp) {
+      return res.status(403).json({
+        valid: false,
+        reason: "EXPIRED",
+        message: "QR 코드 접속 유효기간(24시간)이 만료되었습니다.",
+        expiresAt: foundToken.expiresAt,
+      });
+    }
+
+    // Valid token! Update usage count
+    foundToken.usedCount = (foundToken.usedCount || 0) + 1;
+    saveLocalQrTokens();
+    if (serverFirestoreDb && foundToken.docId) {
+      updateDoc(doc(serverFirestoreDb, "qr_tokens", foundToken.docId), {
+        usedCount: foundToken.usedCount
+      }).catch(() => {});
+    }
+
+    const remainingMs = foundToken.expiresTimestamp - now;
+    res.json({
+      valid: true,
+      token: foundToken.token,
+      code: foundToken.code,
+      title: foundToken.title,
+      company: foundToken.company || "HD현대삼호 협력사",
+      examDate: foundToken.examDate || new Date(foundToken.createdTimestamp || now).toISOString().slice(0, 10),
+      createdAt: foundToken.createdAt,
+      expiresAt: foundToken.expiresAt,
+      remainingMs,
+      remainingHours: (remainingMs / (1000 * 60 * 60)).toFixed(1)
+    });
+  } catch (error: any) {
+    console.error("Verify QR error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+// 4. Revoke / Deactivate a QR Token
+app.post("/api/qr-tokens/revoke", async (req, res) => {
+  try {
+    const { token, docId } = req.body || {};
+    if (serverFirestoreDb && docId) {
+      await updateDoc(doc(serverFirestoreDb, "qr_tokens", docId), { isActive: false });
+    }
+    localQrTokens = localQrTokens.map((t) => (t.token === token || t.docId === docId ? { ...t, isActive: false } : t));
+    saveLocalQrTokens();
+
+    res.json({ success: true, message: "QR 코드가 성공적으로 파괴/비활성화되었습니다." });
+  } catch (error: any) {
+    console.error("Revoke QR error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
+// 5. List all QR tokens history
+app.get("/api/qr-tokens/list", async (req, res) => {
+  try {
+    const now = Date.now();
+    let list: any[] = [];
+    if (serverFirestoreDb) {
+      try {
+        const snap = await getDocs(collection(serverFirestoreDb, "qr_tokens"));
+        snap.forEach((d) => {
+          list.push({ docId: d.id, ...d.data() });
+        });
+      } catch (e) {
+        console.warn("Firestore list error:", e);
+      }
+    }
+
+    if (list.length === 0) {
+      list = [...localQrTokens];
+    }
+
+    // Merge and compute status
+    const formatted = list
+      .map((t) => {
+        const isExp = now > (t.expiresTimestamp || 0);
+        const remainingMs = Math.max(0, (t.expiresTimestamp || 0) - now);
+        return {
+          ...t,
+          status: !t.isActive ? "REVOKED" : isExp ? "EXPIRED" : "ACTIVE",
+          remainingMs,
+          remainingHours: (remainingMs / (1000 * 60 * 60)).toFixed(1)
+        };
+      })
+      .sort((a, b) => (b.createdTimestamp || 0) - (a.createdTimestamp || 0));
+
+    res.json({ success: true, tokens: formatted });
+  } catch (error: any) {
+    console.error("List QR error:", error);
+    res.status(500).json({ error: true, message: error.message });
+  }
+});
+
 // Google Sheets Web App URL (Hardcoded in legacy code as fallback)
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzW9pXFz9Z1ZoR7fBFXSyWvhN8w1rjr5KHwbK9PAShO6RgFHreAaXWWcthMvf9M26xu/exec";
+
 
 // 1. Google Sheets Proxy Endpoints (CORS Bypass)
 app.post("/api/sheets-proxy", async (req, res) => {

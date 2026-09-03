@@ -14,7 +14,14 @@ import {
   LogOut, 
   Calendar, 
   Award, 
-  AlertCircle 
+  AlertCircle,
+  Edit3,
+  X,
+  Lock,
+  Clock,
+  KeyRound,
+  Zap,
+  Sparkles
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import QRCode from "qrcode";
@@ -25,17 +32,24 @@ import {
   formatDate, 
   getStandardDate, 
   getYYYYMMDD, 
+  parseDateStrict,
   generateReportComment, 
   generateReliabilityComment,
   formatCandidateId,
   formatCandidateName,
+  compareCandidateId,
+  getRecordKey,
   AssessmentResult 
 } from "./utils/calculations";
 import { MainChart } from "./components/MainChart";
 import { AIReport } from "./components/AIReport";
 import { TotalReport } from "./components/TotalReport";
+import { QRManagementModal } from "./components/QRManagementModal";
+import { QRAuthGateModal } from "./components/QRAuthGateModal";
+import { QRExpiredView } from "./components/QRExpiredView";
+import { AdminTestSimulatorModal } from "./components/AdminTestSimulatorModal";
 import { firestoreDb } from "./firebase";
-import { collection, addDoc, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc, query, where } from "firebase/firestore";
 
 const LOCAL_DB_KEY = "HD_E7_FINAL_V30";
 
@@ -44,11 +58,11 @@ const UI_TEXT = {
     title: "응시자 정보 입력",
     companyLabel: "소속 업체명 (COMPANY)",
     firstNameLabel: "이름 (FIRST NAME)",
-    lastNameLabel: "성 (LAST NAME)",
+    lastNameLabel: "성 (LAST NAME / 선택)",
     idLabel: "수험번호 (CANDIDATE ID)",
     companyPlaceholder: "소속 업체명을 입력하세요",
-    firstNamePlaceholder: "예: 길동",
-    lastNamePlaceholder: "예: 홍",
+    firstNamePlaceholder: "예: 길동 (외자인 경우 이름만 입력)",
+    lastNamePlaceholder: "예: 홍 (선택사항)",
     idPlaceholder: "예: TM-001, A-01",
     abort: "취소 (ABORT)",
     proceed: "다음 (PROCEED)",
@@ -58,7 +72,7 @@ const UI_TEXT = {
     title: "Thông tin ứng viên",
     companyLabel: "Tên công ty / Cơ quan",
     firstNameLabel: "Tên (FIRST NAME)",
-    lastNameLabel: "Họ (LAST NAME)",
+    lastNameLabel: "Họ & Tên đệm (LAST NAME)",
     idLabel: "Số báo danh",
     companyPlaceholder: "Nhập tên công ty",
     firstNamePlaceholder: "VD: Văn A",
@@ -71,12 +85,12 @@ const UI_TEXT = {
   id: {
     title: "Informasi Peserta",
     companyLabel: "Nama Perusahaan / Agensi",
-    firstNameLabel: "Nama Depan (FIRST NAME)",
-    lastNameLabel: "Nama Belakang (LAST NAME)",
+    firstNameLabel: "Nama Lengkap / Nama Depan (NAME)",
+    lastNameLabel: "Nama Belakang / Marga (Opsional)",
     idLabel: "Nomor Peserta",
     companyPlaceholder: "Masukkan Nama Perusahaan",
-    firstNamePlaceholder: "Nama Depan",
-    lastNamePlaceholder: "Nama Belakang",
+    firstNamePlaceholder: "Contoh: SUGIANTO / JOKO",
+    lastNamePlaceholder: "Opsional (kosongkan jika nama tunggal)",
     idPlaceholder: "Contoh: TM-001, A-01",
     abort: "BATAL (ABORT)",
     proceed: "LANJUT (PROCEED)",
@@ -85,12 +99,12 @@ const UI_TEXT = {
   en: {
     title: "CANDIDATE IDENTIFICATION",
     companyLabel: "COMPANY / AGENCY",
-    firstNameLabel: "FIRST NAME",
-    lastNameLabel: "LAST NAME",
+    firstNameLabel: "FIRST NAME / FULL NAME",
+    lastNameLabel: "LAST NAME (OPTIONAL)",
     idLabel: "CANDIDATE ID",
     companyPlaceholder: "Enter Company Name",
-    firstNamePlaceholder: "e.g. John",
-    lastNamePlaceholder: "e.g. Doe",
+    firstNamePlaceholder: "e.g. John (or Single Name)",
+    lastNamePlaceholder: "e.g. Doe (Optional)",
     idPlaceholder: "e.g. TM-001, A-01",
     abort: "ABORT",
     proceed: "PROCEED",
@@ -120,11 +134,18 @@ export default function App() {
   const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
   
   // Participant Info
-  const [candidateInfo, setCandidateInfo] = useState({
+  const [candidateInfo, setCandidateInfo] = useState<{
+    firstName: string;
+    lastName: string;
+    id: string;
+    company: string;
+    date: string;
+  }>({
     firstName: "",
     lastName: "",
     id: "",
     company: "",
+    date: "",
   });
 
   // Timer & Test Flow
@@ -135,6 +156,7 @@ export default function App() {
 
   // Database / Dashboard States
   const [localData, setLocalData] = useState<AssessmentResult[]>([]);
+  const [firebaseData, setFirebaseData] = useState<AssessmentResult[]>([]);
   const [sheetData, setSheetData] = useState<AssessmentResult[]>([]);
   const [fileData, setFileData] = useState<AssessmentResult[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -142,11 +164,23 @@ export default function App() {
   const [filterDate, setFilterDate] = useState<string>("");
   const [sortKey, setSortKey] = useState<string>("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [lastSyncTime, setLastSyncTime] = useState<string>("");
 
   // Detailed Report & Admin password
   const [viewingResult, setViewingResult] = useState<AssessmentResult | null>(null);
   const [adminPassword, setAdminPassword] = useState<string>("");
+
+  // Candidate Edit Modal States
+  const [editingResult, setEditingResult] = useState<AssessmentResult | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    id: "",
+    company: "",
+    date: "",
+    lang: "kr",
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   // Modals & UI indicators
   const [toast, setToast] = useState<{ message: string; type: "info" | "error" } | null>(null);
@@ -156,11 +190,109 @@ export default function App() {
   const [syncing, setSyncing] = useState<boolean>(false);
   const [isKakaotalk, setIsKakaotalk] = useState<boolean>(false);
 
+  // QR 24-Hour Access Security States
+  const [qrAuthStatus, setQrAuthStatus] = useState<"CHECKING" | "AUTHORIZED" | "UNAUTHORIZED" | "EXPIRED">("CHECKING");
+  const [qrTokenInfo, setQrTokenInfo] = useState<any>(null);
+  const [qrAuthError, setQrAuthError] = useState<string | null>(null);
+  const [showQrAdminModal, setShowQrAdminModal] = useState<boolean>(false);
+  const [showAuthGateModal, setShowAuthGateModal] = useState<boolean>(false);
+  const [showAdminSimulator, setShowAdminSimulator] = useState<boolean>(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [qrRemainingStr, setQrRemainingStr] = useState<string>("");
+
   // Toast Helper
   const showToast = (message: string, type: "info" | "error" = "info") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
   };
+
+  // QR 24-Hour Access Verification on App Load
+  useEffect(() => {
+    const verifyInitialQrAccess = async () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlToken = urlParams.get("qr") || urlParams.get("token") || urlParams.get("code") || urlParams.get("access_code");
+        
+        let tokenToVerify = urlToken;
+        if (!tokenToVerify) {
+          const stored = sessionStorage.getItem("hd_e7_qr_session");
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              tokenToVerify = parsed.token || parsed.code;
+            } catch (e) {
+              sessionStorage.removeItem("hd_e7_qr_session");
+            }
+          }
+        }
+
+        if (!tokenToVerify) {
+          setQrAuthStatus("UNAUTHORIZED");
+          return;
+        }
+
+        const res = await fetch("/api/qr-tokens/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: tokenToVerify, code: tokenToVerify })
+        });
+        const data = await res.json();
+
+        if (data.valid) {
+          setQrAuthStatus("AUTHORIZED");
+          setQrTokenInfo(data);
+          if (data.company) {
+            setCandidateInfo((prev) => ({
+              ...prev,
+              company: data.company,
+              date: data.examDate || prev.date || new Date().toISOString().slice(0, 10),
+            }));
+          }
+          sessionStorage.setItem("hd_e7_qr_session", JSON.stringify(data));
+          // Clean URL parameter without reloading page
+          if (urlToken) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } else {
+          sessionStorage.removeItem("hd_e7_qr_session");
+          if (data.reason === "EXPIRED") {
+            setQrAuthStatus("EXPIRED");
+            setQrAuthError(data.message || "QR 코드 24시간 접속 유효기간이 만료되었습니다.");
+            setQrTokenInfo({ expiresAt: data.expiresAt });
+          } else {
+            setQrAuthStatus("UNAUTHORIZED");
+            setQrAuthError(data.message);
+          }
+        }
+      } catch (err) {
+        console.warn("Initial QR verification failed:", err);
+        setQrAuthStatus("UNAUTHORIZED");
+      }
+    };
+
+    verifyInitialQrAccess();
+  }, []);
+
+  // Update live countdown for 24-hour QR session
+  useEffect(() => {
+    if (qrAuthStatus !== "AUTHORIZED" || !qrTokenInfo?.expiresAt) return;
+    const updateRemaining = () => {
+      const expTime = new Date(qrTokenInfo.expiresAt).getTime();
+      const diff = expTime - Date.now();
+      if (diff <= 0) {
+        setQrAuthStatus("EXPIRED");
+        setQrAuthError("24시간 접속 유효기간이 만료되었습니다. 관리자에게 새 QR 코드를 요청하세요.");
+        sessionStorage.removeItem("hd_e7_qr_session");
+      } else {
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        setQrRemainingStr(`${h}시간 ${m}분 남음`);
+      }
+    };
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 30000);
+    return () => clearInterval(interval);
+  }, [qrAuthStatus, qrTokenInfo]);
 
   // Prevent Navigation / Refresh Guard
   useEffect(() => {
@@ -186,22 +318,335 @@ export default function App() {
     };
   }, []);
 
-  // Check In-app Browser
+  // 1. Load all local storage records (including historical version keys to prevent any loss)
+  const loadAllLocalStorageData = () => {
+    const allFound: AssessmentResult[] = [];
+    const knownKeys = [
+      LOCAL_DB_KEY,
+      "HD_E7_FINAL_V30",
+      "HD_E7_FINAL_V29",
+      "HD_E7_FINAL_V20",
+      "HD_E7_FINAL_V1",
+      "HD_E7_RESULTS",
+      "HD_E7_LOCAL_DB"
+    ];
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith("HD_E7") || k.includes("FINAL") || k.includes("RESULT"))) {
+        if (!knownKeys.includes(k)) knownKeys.push(k);
+      }
+    }
+
+    knownKeys.forEach((key) => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((item) => {
+              if (item && (item.id || item.name)) {
+                allFound.push({
+                  ...item,
+                  source: item.source || "로컬 저장소",
+                  date: item.date || getStandardDate(),
+                });
+              }
+            });
+          }
+        }
+      } catch (e) {
+        console.warn("Storage load error:", key, e);
+      }
+    });
+
+    // Deduplicate local items
+    const map = new Map<string, AssessmentResult>();
+    allFound.forEach((item) => {
+      const k = `${formatCandidateId(item.id)}_${formatCandidateName(item.name)}_${getYYYYMMDD(item.date)}`;
+      if (!map.has(k)) {
+        map.set(k, item);
+      } else {
+        const existing = map.get(k)!;
+        if (Object.keys(item.answers || {}).length >= Object.keys(existing.answers || {}).length) {
+          map.set(k, item);
+        }
+      }
+    });
+
+    const mergedLocals = Array.from(map.values());
+    setLocalData(mergedLocals);
+    if (mergedLocals.length > 0) {
+      localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(mergedLocals));
+    }
+    return mergedLocals;
+  };
+
+  // 2. Fetch directly from Firebase Firestore (Server Endpoint + Client SDK Fallback)
+  const fetchFirestoreData = async (): Promise<AssessmentResult[]> => {
+    const fbRecords: AssessmentResult[] = [];
+
+    // Method A: Server-Side Firestore Proxy (Instant, CORS-free, 100% reliable)
+    try {
+      const res = await fetch("/api/firestore-data");
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list) && list.length > 0) {
+          list.forEach((d: any) => {
+            if (d && (d.name || d.id)) {
+              fbRecords.push({
+                ...d,
+                name: formatCandidateName(d.name || ""),
+                id: formatCandidateId(d.id || ""),
+                company: d.company || "-",
+                date: d.date ? formatDate(d.date) : getStandardDate(),
+                total: typeof d.total === "number" ? d.total : parseFloat(d.total) || 0,
+                reliability: d.reliability || "-",
+                decision: d.decision || "-",
+                details: d.details || {},
+                mainDetails: d.mainDetails || {},
+                minScore: typeof d.minScore === "number" ? d.minScore : 0,
+                answers: d.answers || {},
+                source: "클라우드(Firebase)",
+                docId: d.docId || d.id,
+              });
+            }
+          });
+          const fbMap = new Map<string, AssessmentResult>();
+          fbRecords.forEach((item) => {
+            const key = item.docId || `${item.id}_${item.name}_${getYYYYMMDD(item.date)}`;
+            fbMap.set(key, item);
+          });
+          const uniqueFb = Array.from(fbMap.values());
+          setFirebaseData(uniqueFb);
+          return uniqueFb;
+        }
+      }
+    } catch (apiErr) {
+      console.warn("Server Firestore proxy notice:", apiErr);
+    }
+
+    // Method B: Client-Side Firestore SDK (with timeout safeguard)
+    try {
+      const clientFetch = async () => {
+        const querySnapshot = await getDocs(collection(firestoreDb, "assessments"));
+        querySnapshot.forEach((docSnap) => {
+          const d = docSnap.data() as any;
+          if (d && (d.name || d.id)) {
+            fbRecords.push({
+              ...d,
+              name: formatCandidateName(d.name || ""),
+              id: formatCandidateId(d.id || ""),
+              company: d.company || "-",
+              date: d.date ? formatDate(d.date) : getStandardDate(),
+              total: typeof d.total === "number" ? d.total : parseFloat(d.total) || 0,
+              reliability: d.reliability || "-",
+              decision: d.decision || "-",
+              details: d.details || {},
+              mainDetails: d.mainDetails || {},
+              minScore: typeof d.minScore === "number" ? d.minScore : 0,
+              answers: d.answers || {},
+              source: "클라우드(Firebase)",
+              docId: docSnap.id
+            });
+          }
+        });
+      };
+      await Promise.race([
+        clientFetch(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+      ]);
+    } catch (err) {
+      console.warn("Firebase client query notice:", err);
+    }
+
+    // Deduplicate by docId or Candidate Key
+    const fbMap = new Map<string, AssessmentResult>();
+    fbRecords.forEach((item) => {
+      const key = item.docId || `${item.id}_${item.name}_${getYYYYMMDD(item.date)}`;
+      fbMap.set(key, item);
+    });
+
+    const uniqueFb = Array.from(fbMap.values());
+    setFirebaseData(uniqueFb);
+    return uniqueFb;
+  };
+
+  // 3. Fetch from Google Sheets Web App via Server Proxy
+  const fetchGoogleSheetsData = async (): Promise<AssessmentResult[]> => {
+    try {
+      const res = await fetch("/api/sheets-proxy");
+      if (!res.ok) {
+        console.warn("Sheets proxy returned non-OK status:", res.status);
+        return [];
+      }
+      const text = await res.text();
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        return [];
+      }
+      const rows = Array.isArray(parsed) ? parsed : (parsed.data || []);
+      const syncedRecords: AssessmentResult[] = [];
+
+      rows.forEach((rawRow: any) => {
+        let row: any = { ...rawRow };
+        // Unpack embedded JSON object from any column (e.g. column "95", "JSON", "PAYLOAD")
+        for (const [k, v] of Object.entries(rawRow)) {
+          if (typeof v === "string" && v.trim().startsWith("{") && v.trim().endsWith("}")) {
+            try {
+              const parsedJson = JSON.parse(v.trim());
+              row = { ...row, ...parsedJson };
+            } catch {}
+          }
+        }
+
+        const keys = Object.keys(row);
+        const findKey = (targets: string[]) => 
+          keys.find((k) => targets.some((t) => k.replace(/[\s\r\n]/g, "").toUpperCase().includes(t.toUpperCase())));
+        
+        const nameKey = findKey(["이름", "성명", "NAME"]);
+        const candidateName = nameKey && row[nameKey] ? row[nameKey] : (row.name || "");
+        const idKey = findKey(["ID", "응시번호", "CANDIDATE", "수험번호"]);
+        const candidateId = idKey && row[idKey] ? row[idKey] : (row.id || "");
+
+        if (!candidateName && !candidateId) return;
+
+        // Extract raw answers Q1 - Q94
+        const answers: Record<number, number> = {};
+        for (let q = 1; q <= 94; q++) {
+          const qKey = keys.find((k) => {
+            const c = k.replace(/[\s\r\n]/g, "").toUpperCase();
+            return c === "Q" + q || c === "문항" + q || c === String(q);
+          });
+          if (qKey && row[qKey] !== undefined && row[qKey] !== "") {
+            const val = parseInt(row[qKey], 10);
+            if (!isNaN(val) && val >= 1 && val <= 5) {
+              answers[q] = val;
+            }
+          }
+        }
+
+        // Extract dimension details
+        const det: Record<string, number> = {};
+        const detMap = {
+          C1: ["C1", "근태"], C2: ["C2", "책임"], R1: ["R1", "규정"], R2: ["R2", "정직"],
+          T1: ["T1", "협력"], T2: ["T2", "갈등"], E1: ["E1", "감정"], E2: ["E2", "인내"],
+          S1: ["S1", "안전"], S2: ["S2", "위험"], A1: ["A1", "학습"], A2: ["A2", "조직"]
+        };
+
+        Object.entries(detMap).forEach(([k, targets]) => {
+          const matched = findKey(targets);
+          if (matched && row[matched] !== undefined && row[matched] !== "") {
+            det[k] = parseFloat(row[matched]) || 0;
+          } else if (row.details && row.details[k] !== undefined) {
+            det[k] = parseFloat(row.details[k]) || 0;
+          } else if (row[k] !== undefined && typeof row[k] !== "object") {
+            det[k] = parseFloat(row[k]) || 0;
+          } else {
+            det[k] = 0;
+          }
+        });
+
+        const compKey = findKey(["업체", "소속", "COMPANY", "AGENCY"]);
+        const totalKey = findKey(["종합점수", "총점", "TOTAL"]);
+        const relKey = findKey(["신뢰도", "RELIABILITY"]);
+        const decKey = findKey(["판정", "등급", "종합등급", "GRADE", "DECISION"]);
+        const dateKey = findKey(["일시", "날짜", "DATE", "TIME", "응시일자", "응시일시"]);
+
+        const rawDate = (dateKey && row[dateKey]) ? row[dateKey] : (row.date || getStandardDate());
+        const parsedDate = formatDate(rawDate);
+
+        let totalScore = totalKey && row[totalKey] ? parseFloat(row[totalKey]) : (typeof row.total === "number" ? row.total : parseFloat(row.total) || 0);
+        let decision = decKey && row[decKey] ? row[decKey] : (row.decision || "-");
+        let reliability = relKey && row[relKey] ? row[relKey] : (row.reliability || "-");
+
+        if ((!totalScore || totalScore === 0) && Object.keys(answers).length >= 50) {
+          const computed = calculateAll(candidateName, answers);
+          totalScore = computed.total;
+          decision = computed.decision;
+          reliability = computed.reliability;
+        }
+
+        const calculatedMin = Math.min(...Object.values(det).filter((v) => v > 0), 100);
+
+        syncedRecords.push({
+          source: "클라우드(시트)",
+          company: compKey && row[compKey] ? row[compKey] : (row.company || "-"),
+          name: formatCandidateName(candidateName),
+          id: formatCandidateId(candidateId || "-"),
+          total: totalScore,
+          reliability: reliability,
+          decision: decision,
+          details: det,
+          mainDetails: {
+            C: Math.round(((det.C1 || 0) + (det.C2 || 0)) / 2),
+            R: Math.round(((det.R1 || 0) + (det.R2 || 0)) / 2),
+            S: Math.round(((det.S1 || 0) + (det.S2 || 0)) / 2),
+            T: Math.round(((det.T1 || 0) + (det.T2 || 0)) / 2),
+            E: Math.round(((det.E1 || 0) + (det.E2 || 0)) / 2),
+            A: Math.round(((det.A1 || 0) + (det.A2 || 0)) / 2),
+          },
+          minScore: calculatedMin,
+          date: parsedDate,
+          answers: answers,
+        });
+      });
+
+      setSheetData(syncedRecords);
+      return syncedRecords;
+    } catch (err) {
+      console.warn("Google Sheets sync notice:", err);
+      return [];
+    }
+  };
+
+  // 4. Synchronize all cloud sources (Firebase & Google Sheets) in parallel
+  const syncAllCloudData = async (manual = false) => {
+    setSyncing(true);
+    try {
+      loadAllLocalStorageData();
+      const [fbRes, sheetRes] = await Promise.allSettled([
+        fetchFirestoreData(),
+        fetchGoogleSheetsData()
+      ]);
+
+      const fbCount = fbRes.status === "fulfilled" ? fbRes.value.length : 0;
+      const sheetCount = sheetRes.status === "fulfilled" ? sheetRes.value.length : 0;
+
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+      setLastSyncTime(timeStr);
+
+      if (manual) {
+        showToast(`클라우드 동기화 완료 (Firebase: ${fbCount}건, 구글시트: ${sheetCount}건)`);
+      }
+    } catch (err: any) {
+      console.error("Sync all cloud error:", err);
+      if (manual) showToast("동기화 중 오류 발생: " + err.message, "error");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Initial mount: check in-app browser & auto-load data
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();
     if (/kakaotalk|line|instagram|fbav/i.test(ua)) {
       setIsKakaotalk(true);
     }
-    // Load local database counts
-    const stored = localStorage.getItem(LOCAL_DB_KEY);
-    if (stored) {
-      try {
-        setLocalData(JSON.parse(stored));
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    loadAllLocalStorageData();
+    // Fetch cloud data automatically in background
+    syncAllCloudData(false);
   }, []);
+
+  // Auto-refresh when entering admin dashboard
+  useEffect(() => {
+    if (currentView === "admin-dashboard" || currentView === "total-report") {
+      syncAllCloudData(false);
+    }
+  }, [currentView]);
 
   // Sync Timer
   useEffect(() => {
@@ -261,6 +706,12 @@ export default function App() {
 
   // Start Assessment or Resume check
   const handleInitializeSystem = () => {
+    // If not authorized via 24-hour QR token and not authenticated admin, show QR Auth Gate Modal
+    if (qrAuthStatus !== "AUTHORIZED" && !isAdminAuthenticated) {
+      setShowAuthGateModal(true);
+      return;
+    }
+
     try {
       if (document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(err => console.warn("Fullscreen request failed", err));
@@ -358,8 +809,8 @@ export default function App() {
     setCurrentView("upload");
     const elapsedTime = 1800 - remainingTime;
     
-    // Core Scoring calculations
-    const fullName = `${candidateInfo.lastName} ${candidateInfo.firstName}`.trim();
+    // Core Scoring calculations (Supports both single name/mononym and full names)
+    const fullName = [candidateInfo.lastName, candidateInfo.firstName].filter(Boolean).join(" ").trim();
     const computed = calculateAll(fullName, userAnswers);
     let finalReliability = computed.reliability;
     let isTooFast = false;
@@ -411,7 +862,17 @@ export default function App() {
           (sheetPayload as any)["Q" + i] = payload.answers[i] || "";
         }
 
-        // Save to Firebase Firestore
+        // Save to Firebase Firestore (Dual redundant: Server Endpoint + Client SDK)
+        try {
+          await fetch("/api/firestore-data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } catch (apiFbErr) {
+          console.warn("Server Firestore POST warning:", apiFbErr);
+        }
+
         try {
           await addDoc(collection(firestoreDb, "assessments"), {
             ...payload,
@@ -448,131 +909,36 @@ export default function App() {
     }, 1000);
   };
 
-  // Google Sheets DB synchronization (GET)
-  const syncWithGoogleSheet = async (manual = false) => {
-    setSyncing(true);
-    try {
-      if (!isOnline) throw new Error("인터넷이 연결되어 있지 않습니다.");
-      const res = await fetch("/api/sheets-proxy");
-      if (!res.ok) throw new Error("CORS proxy response error: " + res.status);
-      
-      const text = await res.text();
-      const parsed = JSON.parse(text);
-      const rows = Array.isArray(parsed) ? parsed : (parsed.data || []);
-      
-      const syncedRecords: AssessmentResult[] = [];
-      
-      // 1. Fetch from Firebase Firestore
-      try {
-        const querySnapshot = await getDocs(collection(firestoreDb, "assessments"));
-        querySnapshot.forEach((doc) => {
-          const data = doc.data() as AssessmentResult;
-          if (data && data.name && data.id) {
-            syncedRecords.push({
-              ...data,
-              source: "클라우드(Firebase)",
-              docId: doc.id
-            });
-          }
-        });
-      } catch (fbErr) {
-        console.error("Firebase sync error: ", fbErr);
-      }
-
-      // 2. Fetch from Google Sheets
-      rows.forEach((row: any) => {
-        const keys = Object.keys(row);
-        const findKey = (targets: string[]) => 
-          keys.find((k) => targets.some((t) => k.replace(/\s/g, "").toUpperCase().includes(t.toUpperCase())));
-        
-        const nameKey = findKey(["이름", "성명", "NAME"]);
-        if (!nameKey || !row[nameKey]) return;
-
-        // Extract raw answers Q1 - Q94
-        const answers: Record<number, number> = {};
-        for (let q = 1; q <= 94; q++) {
-          const qKey = keys.find((k) => {
-            const c = k.replace(/\s/g, "").toUpperCase();
-            return c === "Q" + q || c === "문항" + q || c === String(q);
-          });
-          if (qKey) {
-            const val = parseInt(row[qKey]);
-            if (!isNaN(val) && val >= 1 && val <= 5) {
-              answers[q] = val;
-            }
-          }
-        }
-
-        // Extract dimension details
-        const det: Record<string, number> = {};
-        const detMap = {
-          C1: ["C1", "근태"], C2: ["C2", "책임"], R1: ["R1", "규정"], R2: ["R2", "정직"],
-          T1: ["T1", "협력"], T2: ["T2", "갈등"], E1: ["E1", "감정"], E2: ["E2", "인내"],
-          S1: ["S1", "안전"], S2: ["S2", "위험"], A1: ["A1", "학습"], A2: ["A2", "조직"]
-        };
-
-        Object.entries(detMap).forEach(([k, targets]) => {
-          const matched = findKey(targets);
-          det[k] = matched ? parseFloat(row[matched]) || 0 : 0;
-        });
-
-        const idKey = findKey(["ID", "응시번호", "CANDIDATE"]);
-        const compKey = findKey(["업체", "소속", "COMPANY", "AGENCY"]);
-        const totalKey = findKey(["종합점수", "총점", "TOTAL"]);
-        const relKey = findKey(["신뢰도", "RELIABILITY"]);
-        const decKey = findKey(["판정", "등급", "종합등급", "GRADE", "DECISION"]);
-        const dateKey = findKey(["일시", "날짜", "DATE", "TIME", "응시일자"]);
-
-        syncedRecords.push({
-          source: "클라우드(시트)",
-          company: compKey && row[compKey] ? row[compKey] : "-",
-          name: row[nameKey],
-          id: idKey && row[idKey] ? row[idKey] : "-",
-          total: totalKey && row[totalKey] ? parseFloat(row[totalKey]) : 0,
-          reliability: relKey && row[relKey] ? row[relKey] : "-",
-          decision: decKey && row[decKey] ? row[decKey] : "-",
-          details: det,
-          mainDetails: {
-            C: Math.round(((det.C1 || 0) + (det.C2 || 0)) / 2),
-            R: Math.round(((det.R1 || 0) + (det.R2 || 0)) / 2),
-            S: Math.round(((det.S1 || 0) + (det.S2 || 0)) / 2),
-            T: Math.round(((det.T1 || 0) + (det.T2 || 0)) / 2),
-            E: Math.round(((det.E1 || 0) + (det.E2 || 0)) / 2),
-            A: Math.round(((det.A1 || 0) + (det.A2 || 0)) / 2),
-          },
-          minScore: Math.min(...Object.values(det)),
-          date: dateKey && row[dateKey] ? row[dateKey] : getStandardDate(),
-          answers: answers,
-        });
-      });
-
-      setSheetData(syncedRecords);
-      if (manual) showToast("클라우드 구글 시트 동기화 완료");
-    } catch (e: any) {
-      console.warn(e);
-      if (manual) showToast("동기화 실패: " + e.message, "error");
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  // Merge local, file, and sheet records removing duplicates
+  // Merge local, file, sheet, and firebase records removing duplicates safely
   const mergedData = useMemo(() => {
     const uniqueMap = new Map<string, AssessmentResult>();
-    [...localData, ...fileData, ...sheetData].forEach((d) => {
-      if (!d || !d.id || !d.name) return;
-      const key = `${String(d.id).trim().toUpperCase()}_${String(d.name).trim().toUpperCase()}_${getYYYYMMDD(d.date)}`;
+    [...localData, ...fileData, ...sheetData, ...firebaseData].forEach((d) => {
+      if (!d || (!d.id && !d.name)) return;
+      const normId = formatCandidateId(d.id || "");
+      const normName = formatCandidateName(d.name || "");
+      const normDate = getYYYYMMDD(d.date || "");
+      const key = `${normId}_${normName}_${normDate}`;
+
       if (!uniqueMap.has(key)) {
         uniqueMap.set(key, d);
       } else {
-        // Prefer sheet records
-        if (d.source.includes("클라우드") || d.source.includes("시트")) {
-          uniqueMap.set(key, d);
-        }
+        const existing = uniqueMap.get(key)!;
+        // Merge records: preserve docId, prefer richer answers & diagnosis
+        const hasMoreAnswers = Object.keys(d.answers || {}).length >= Object.keys(existing.answers || {}).length;
+        const merged: AssessmentResult = {
+          ...existing,
+          ...d,
+          docId: d.docId || existing.docId,
+          source: d.source || existing.source,
+          answers: hasMoreAnswers ? d.answers : existing.answers,
+          details: (d.details && Object.keys(d.details).length > 0) ? d.details : existing.details,
+          mainDetails: (d.mainDetails && Object.keys(d.mainDetails).length > 0) ? d.mainDetails : existing.mainDetails,
+        };
+        uniqueMap.set(key, merged);
       }
     });
     return Array.from(uniqueMap.values());
-  }, [localData, fileData, sheetData]);
+  }, [localData, fileData, sheetData, firebaseData]);
 
   // Handle Search, Date and Grade Filters
   const filteredData = useMemo(() => {
@@ -595,14 +961,18 @@ export default function App() {
 
     // Sorting
     list.sort((a, b) => {
+      if (sortKey === "id") {
+        const cmp = compareCandidateId(a.id, b.id);
+        return sortOrder === "asc" ? cmp : -cmp;
+      }
       let va = (a as any)[sortKey];
       let vb = (b as any)[sortKey];
       if (sortKey === "total") {
         va = parseFloat(va || 0);
         vb = parseFloat(vb || 0);
       } else if (sortKey === "date") {
-        va = new Date(a.date).getTime();
-        vb = new Date(b.date).getTime();
+        va = parseDateStrict(a.date).getTime();
+        vb = parseDateStrict(b.date).getTime();
       } else {
         va = String(va || "").toLowerCase();
         vb = String(vb || "").toLowerCase();
@@ -631,13 +1001,13 @@ export default function App() {
 
   // Multi Delete Actions (Local & File data only)
   const handleDeleteSelected = () => {
-    if (selectedIds.length === 0) {
+    if (selectedKeys.length === 0) {
       showToast("삭제할 항목을 선택해주세요.", "error");
       return;
     }
     // Block sheet records
     const isSheetIncluded = filteredData.some(
-      (d) => selectedIds.includes(d.id) && d.source === "클라우드(시트)"
+      (d, idx) => selectedKeys.includes(getRecordKey(d, idx)) && d.source === "클라우드(시트)"
     );
     if (isSheetIncluded) {
       setCustomModal({
@@ -648,42 +1018,180 @@ export default function App() {
     }
 
     setConfirmModal({
-      message: `선택한 ${selectedIds.length}개 항목을 삭제하시겠습니까?`,
+      message: `선택한 ${selectedKeys.length}개 항목을 삭제하시겠습니까?`,
       onConfirm: async () => {
-        const remainingLocal = localData.filter((d) => !selectedIds.includes(d.id));
-        const remainingFile = fileData.filter((d) => !selectedIds.includes(d.id));
-        
+        const remainingLocal = localData.filter((d, idx) => !selectedKeys.includes(getRecordKey(d, idx)));
+        const remainingFile = fileData.filter((d, idx) => !selectedKeys.includes(getRecordKey(d, idx)));
+        const remainingFirebase = firebaseData.filter((d, idx) => !selectedKeys.includes(getRecordKey(d, idx)));
+        const remainingSheet = sheetData.filter((d, idx) => !selectedKeys.includes(getRecordKey(d, idx)));
+
         // Find if any are from Firestore and delete them
-        const firestoreRecordsToDelete = sheetData.filter((d) => selectedIds.includes(d.id) && d.docId);
+        const firestoreRecordsToDelete = firebaseData.filter((d, idx) => selectedKeys.includes(getRecordKey(d, idx)) && d.docId);
         for (const record of firestoreRecordsToDelete) {
           try {
-            await deleteDoc(doc(firestoreDb, "assessments", record.docId!));
+            await fetch(`/api/firestore-data/${record.docId}`, { method: "DELETE" });
           } catch (e) {
             console.error("Failed to delete from Firestore", e);
           }
         }
-        const remainingSheet = sheetData.filter((d) => !selectedIds.includes(d.id));
 
+        setFirebaseData(remainingFirebase);
         setLocalData(remainingLocal);
         setFileData(remainingFile);
         setSheetData(remainingSheet);
         localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(remainingLocal));
-        setSelectedIds([]);
+        setSelectedKeys([]);
         showToast("선택된 내역이 완전히 삭제되었습니다.");
         setConfirmModal(null);
       },
     });
   };
 
-  const handleToggleRow = (id: string) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const handleToggleRow = (key: string) => {
+    setSelectedKeys((prev) => (prev.includes(key) ? prev.filter((x) => x !== key) : [...prev, key]));
   };
 
   const handleToggleAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(filteredData.map((d) => d.id));
+      setSelectedKeys(filteredData.map((d, idx) => getRecordKey(d, idx)));
     } else {
-      setSelectedIds([]);
+      setSelectedKeys([]);
+    }
+  };
+
+  // Open Candidate Edit Modal
+  const handleOpenEditModal = (item: AssessmentResult, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingResult(item);
+    setEditForm({
+      name: item.name || "",
+      id: item.id || "",
+      company: item.company || "",
+      date: item.date || getStandardDate(),
+      lang: item.lang || "kr",
+    });
+  };
+
+  // Save Candidate Edit to Local DB and Firebase Firestore
+  const handleSaveEdit = async () => {
+    if (!editingResult) return;
+    if (!editForm.name.trim()) {
+      showToast("응시자 성명을 입력해주세요.", "error");
+      return;
+    }
+    if (!editForm.id.trim()) {
+      showToast("수험번호를 입력해주세요.", "error");
+      return;
+    }
+    if (!editForm.company.trim()) {
+      showToast("소속 업체명을 입력해주세요.", "error");
+      return;
+    }
+
+    setIsSavingEdit(true);
+
+    try {
+      const updatedName = formatCandidateName(editForm.name);
+      const updatedId = formatCandidateId(editForm.id);
+      const updatedCompany = editForm.company.trim();
+      const updatedDate = editForm.date.trim() || getStandardDate();
+      const updatedLang = editForm.lang || editingResult.lang || "kr";
+
+      const updatedRecord: AssessmentResult = {
+        ...editingResult,
+        name: updatedName,
+        id: updatedId,
+        company: updatedCompany,
+        date: updatedDate,
+        lang: updatedLang,
+      };
+
+      const isMatch = (d: AssessmentResult) => {
+        if (editingResult.docId && d.docId) {
+          return d.docId === editingResult.docId;
+        }
+        return (
+          (d.id === editingResult.id && d.name === editingResult.name) ||
+          (d.id === editingResult.id && d.company === editingResult.company) ||
+          d.id === editingResult.id
+        );
+      };
+
+      // 1. Update in firebaseData state immediately
+      setFirebaseData((prev) => prev.map((d) => (isMatch(d) ? updatedRecord : d)));
+
+      // 2. Update in localData and persist
+      const newLocalData = localData.map((d) => (isMatch(d) ? updatedRecord : d));
+      setLocalData(newLocalData);
+      localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(newLocalData));
+
+      // 3. Update in sheetData
+      setSheetData((prev) => prev.map((d) => (isMatch(d) ? updatedRecord : d)));
+
+      // 4. Update in fileData
+      setFileData((prev) => prev.map((d) => (isMatch(d) ? updatedRecord : d)));
+
+      // 5. Update Firebase Firestore (Server API with safe timeout)
+      const firestorePayload = {
+        name: updatedName,
+        id: updatedId,
+        company: updatedCompany,
+        date: updatedDate,
+        lang: updatedLang,
+      };
+
+      const cloudSavePromise = (async () => {
+        try {
+          if (editingResult.docId) {
+            await fetch(`/api/firestore-data/${editingResult.docId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(firestorePayload),
+            });
+          } else {
+            // Find by candidateId query or save as new record
+            const queryRes = await fetch("/api/firestore-data/update-by-query", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                candidateId: editingResult.id,
+                updates: firestorePayload,
+              }),
+            });
+            const queryJson = await queryRes.json().catch(() => ({}));
+            if (!queryJson.updatedCount || queryJson.updatedCount === 0) {
+              await fetch("/api/firestore-data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...updatedRecord, ...firestorePayload }),
+              });
+            }
+          }
+        } catch (apiErr) {
+          console.warn("Server Firestore save warning:", apiErr);
+        }
+      })();
+
+      await Promise.race([
+        cloudSavePromise,
+        new Promise((resolve) => setTimeout(resolve, 2000))
+      ]);
+
+      // 6. If viewingResult is currently active, update viewingResult
+      if (
+        viewingResult &&
+        (viewingResult.id === editingResult.id || (editingResult.docId && viewingResult.docId === editingResult.docId))
+      ) {
+        setViewingResult(updatedRecord);
+      }
+
+      showToast("응시자 정보가 성공적으로 수정 및 저장되었습니다.");
+      setEditingResult(null);
+    } catch (err: any) {
+      console.error(err);
+      showToast("수정 저장 중 오류가 발생했습니다: " + err.message, "error");
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -691,11 +1199,54 @@ export default function App() {
   const handleAdminAuth = () => {
     if (adminPassword === "3269") {
       setAdminPassword("");
+      setIsAdminAuthenticated(true);
+      setQrAuthStatus("AUTHORIZED");
       setCurrentView("admin-dashboard");
-      syncWithGoogleSheet(false);
+      syncAllCloudData(false);
+      showToast("🔐 시스템 관리자 인증 완료", "info");
     } else {
       showToast("비밀번호가 올바르지 않습니다.", "error");
     }
+  };
+
+  // Instant Simulation: Fast-forward answers, calculate scores, and immediately view full report
+  const handleInstantSimulate = async (simResult: AssessmentResult) => {
+    // 1. Save to local data & localStorage
+    const updatedLocals = [simResult, ...localData];
+    setLocalData(updatedLocals);
+    localStorage.setItem(LOCAL_DB_KEY, JSON.stringify(updatedLocals));
+
+    // 2. Open detailed report immediately
+    setViewingResult(simResult);
+
+    // 3. Save to Firebase Firestore in background
+    if (isOnline) {
+      try {
+        await fetch("/api/firestore-data", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(simResult),
+        });
+        setFirebaseData((prev) => [simResult, ...prev]);
+      } catch (e) {
+        console.warn("Simulated test firestore save warning:", e);
+      }
+    }
+  };
+
+  // Direct Live Assessment from Admin Mode (Bypasses QR requirement)
+  const handleDirectLiveTest = (info: { firstName: string; lastName: string; id: string; company: string; lang: string }) => {
+    setCandidateInfo({
+      firstName: info.firstName,
+      lastName: info.lastName,
+      id: info.id,
+      company: info.company,
+      date: new Date().toISOString().slice(0, 10),
+    });
+    setLang(info.lang || "kr");
+    setIsAdminAuthenticated(true);
+    setQrAuthStatus("AUTHORIZED");
+    startNewTest();
   };
 
   // Excel/JSON Data Backup Imports
@@ -853,22 +1404,9 @@ export default function App() {
     showToast("로컬 JSON 백업 다운로드 완료");
   };
 
-  // QR code rendering modal trigger
+  // QR code management modal trigger
   const handleShowQRCode = () => {
-    const url = window.location.href.split("?")[0].split("#")[0];
-    setCustomModal({
-      title: "QR LINK TO ASSESSMENT",
-      message: `스마트 기기나 태블릿으로 QR 코드를 스캔하여 바로 인성검사에 응시할 수 있습니다.`,
-    });
-    // Use timeout to ensure canvas is inside DOM
-    setTimeout(() => {
-      const qrCanvas = document.getElementById("canvas-qrcode") as HTMLCanvasElement;
-      if (qrCanvas) {
-        QRCode.toCanvas(qrCanvas, url, { width: 180, margin: 2 }, (err) => {
-          if (err) console.error(err);
-        });
-      }
-    }, 150);
+    setShowQrAdminModal(true);
   };
 
   const handlePrintReport = () => {
@@ -1015,6 +1553,208 @@ export default function App() {
         </div>
       )}
 
+      {/* Candidate Information Edit Modal */}
+      {editingResult && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] no-print">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden text-slate-800 animate-fade-in font-sans">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-5 sm:p-6 flex justify-between items-center border-b border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 text-lg font-bold">
+                  ✏️
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold font-display tracking-tight text-white flex items-center gap-2">
+                    응시자 정보 수정 <span className="text-xs text-amber-400 font-mono">(EDIT INFO)</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">
+                    ID: {editingResult.id} | {editingResult.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setEditingResult(null)}
+                className="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <div className="p-5 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-900 text-xs leading-relaxed flex items-start gap-2.5">
+                <span className="text-base">💡</span>
+                <div>
+                  <strong>알림:</strong> 정보를 수정하면 <strong>로컬 DB 및 Firebase 클라우드 DB</strong>에 즉시 반영됩니다. (검사 점수 및 문항별 응답 데이터는 안전하게 유지됩니다.)
+                </div>
+              </div>
+
+              {/* Form fields */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-mono">
+                  소속 업체명 (COMPANY / AGENCY) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editForm.company}
+                  onChange={(e) => setEditForm((prev) => ({ ...prev, company: e.target.value }))}
+                  placeholder="예: 현대삼호중공업 협력사명"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none text-sm text-slate-900 transition font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-mono">
+                    수험번호 (CANDIDATE ID) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.id}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, id: e.target.value }))}
+                    placeholder="예: TM-001, A-01"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none text-sm text-slate-900 transition font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-mono">
+                    성명 (NAME) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))}
+                    placeholder="예: NGUYEN VAN A, 홍길동"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none text-sm text-slate-900 transition font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-mono">
+                    응시일자 (DATE) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.date}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, date: e.target.value }))}
+                    placeholder="YYYY.MM.DD"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none text-sm text-slate-900 transition font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider font-mono">
+                    응시 언어 / 국적 (NATION)
+                  </label>
+                  <select
+                    value={editForm.lang}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, lang: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none text-sm text-slate-900 transition font-bold cursor-pointer"
+                  >
+                    <option value="kr">한국어 (KR)</option>
+                    <option value="vn">베트남어 (VN)</option>
+                    <option value="id">인도네시아어 (ID)</option>
+                    <option value="np">네팔어 (NP)</option>
+                    <option value="en">영어 (EN)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 p-4 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setEditingResult(null)}
+                disabled={isSavingEdit}
+                className="px-5 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs transition cursor-pointer disabled:opacity-50"
+              >
+                취소 (CANCEL)
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={isSavingEdit}
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSavingEdit ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>저장 중...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    <span>저장 및 DB 반영 (SAVE)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal for applicant mobile access */}
+      {showQrAdminModal && (
+        <QRManagementModal
+          onClose={() => setShowQrAdminModal(false)}
+          showToast={showToast}
+        />
+      )}
+
+      {/* QR Auth Gate Modal when non-authorized user tries to start */}
+      {showAuthGateModal && (
+        <QRAuthGateModal
+          onSuccess={(data) => {
+            setQrAuthStatus("AUTHORIZED");
+            setQrTokenInfo(data);
+            if (data.company) {
+              setCandidateInfo((prev) => ({
+                ...prev,
+                company: data.company,
+                date: data.examDate || prev.date || new Date().toISOString().slice(0, 10),
+              }));
+            }
+            sessionStorage.setItem("hd_e7_qr_session", JSON.stringify(data));
+            setShowAuthGateModal(false);
+            setCurrentView("login");
+          }}
+          onAdminClick={() => {
+            setShowAuthGateModal(false);
+            setCurrentView("admin-login");
+          }}
+          onClose={() => setShowAuthGateModal(false)}
+          showToast={showToast}
+        />
+      )}
+
+      {/* QR Expired View */}
+      {qrAuthStatus === "EXPIRED" && (
+        <QRExpiredView
+          expiresAt={qrTokenInfo?.expiresAt}
+          errorMessage={qrAuthError || undefined}
+          onRetryWithCode={() => {
+            setQrAuthStatus("UNAUTHORIZED");
+            setShowAuthGateModal(true);
+          }}
+          onAdminClick={() => {
+            setQrAuthStatus("UNAUTHORIZED");
+            setCurrentView("admin-login");
+          }}
+        />
+      )}
+
+      {/* Admin Test Simulator Modal */}
+      {showAdminSimulator && (
+        <AdminTestSimulatorModal
+          onClose={() => setShowAdminSimulator(false)}
+          onDirectLiveTest={handleDirectLiveTest}
+          onInstantSimulate={handleInstantSimulate}
+          showToast={showToast}
+        />
+      )}
+
       {/* ----------------- VIEW: HOME ----------------- */}
       {currentView === "home" && (
         <div className="fixed inset-0 flex flex-col items-center justify-center p-4 z-20 overflow-hidden">
@@ -1024,58 +1764,60 @@ export default function App() {
             style={{ backgroundImage: "url('/yard.png')" }} 
           />
           {/* Overlay to darken background for readability */}
-          <div className="absolute inset-0 bg-[#001424]/55 backdrop-blur-[1.5px] z-0" />
+          <div className="absolute inset-0 bg-[#001424]/60 backdrop-blur-[2px] z-0" />
           
-          <div className="glass-premium cyber-bracket p-6 sm:p-10 md:p-16 max-w-2xl w-full text-center relative z-10 shadow-2xl border-t-4 border-t-[#009539]">
-            {/* System Admin Access buttons (Top-Right inside the box) */}
-            <div className="absolute top-4 right-4 z-50 hidden lg:flex bg-slate-900/80 border border-[#009539]/30 p-1.5 rounded gap-1.5 shadow-lg backdrop-blur-md">
-              <button
-                onClick={() => setCurrentView("admin-login")}
-                className="glass px-2 py-1 text-[10px] sm:text-[11px] border border-blue-500/30 rounded text-blue-400 hover:text-blue-300 font-mono transition flex items-center gap-1.5 glow-blue cursor-pointer"
-              >
-                <Shield className="w-3 h-3" />
-                SYS_ADMIN
-              </button>
+          <div className="glass-premium cyber-bracket p-6 sm:p-10 md:p-14 max-w-2xl w-full text-center relative z-10 shadow-2xl border-t-4 border-t-[#009539]">
+            {/* Top-Right Navigation buttons */}
+            <div className="absolute top-4 right-4 z-50 flex bg-slate-900/90 border border-slate-700/60 p-1 rounded-lg gap-1.5 shadow-xl backdrop-blur-md">
               <button
                 onClick={handleShowQRCode}
-                className="glass px-2 py-1 text-[10px] sm:text-[11px] border border-cyan-500/30 rounded text-cyan-400 hover:text-cyan-300 font-mono transition flex items-center gap-1.5 justify-center glow-cyan cursor-pointer"
+                className="glass px-3 py-1.5 text-[11px] border border-cyan-500/30 rounded text-cyan-300 hover:text-white font-mono transition flex items-center gap-1.5 justify-center glow-cyan cursor-pointer"
+                title="모바일 QR 코드"
               >
-                <QrCode className="w-3 h-3" />
-                QR_LINK
+                <QrCode className="w-3.5 h-3.5" />
+                <span>QR_CODE</span>
+              </button>
+              <button
+                onClick={() => setCurrentView("admin-login")}
+                className="glass px-3 py-1.5 text-[11px] border border-blue-500/30 rounded text-blue-300 hover:text-white font-mono transition flex items-center gap-1.5 glow-blue cursor-pointer"
+                title="시스템 관리자 로그인"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>SYS_ADMIN</span>
               </button>
             </div>
 
-            <div className="relative z-10 mb-6 sm:mb-10">
-              <div className="inline-flex items-center gap-2 bg-[#002c5f]/50 px-3 py-1.5 rounded-full border border-blue-400/30 mb-6 sm:mb-8 shadow-sm">
+            <div className="relative z-10 mb-6 sm:mb-8">
+              <div className="inline-flex items-center gap-2 bg-[#002c5f]/60 px-3.5 py-1.5 rounded-full border border-blue-400/40 mb-4 sm:mb-6 shadow-sm">
                 <span className="w-2 h-2 bg-[#009539] rounded-full animate-pulse shadow-[0_0_8px_#009539]" />
                 <span className="text-[10px] font-mono text-white tracking-[0.2em] font-bold">HR_EVALUATION_SYSTEM</span>
               </div>
               
-              <div className="mb-6 sm:mb-8 border-b border-white/20 pb-6 flex flex-col items-center justify-center">
+              <div className="mb-4 sm:mb-6 border-b border-white/20 pb-5 flex flex-col items-center justify-center">
                 <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-10 sm:h-12 md:h-14 lg:h-16 object-contain filter drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden'); }} />
                 <div id="fallback-logo" className="hidden text-white font-display font-extrabold text-lg sm:text-xl md:text-2xl lg:text-3xl tracking-widest mt-3">
                   HD HYUNDAI SAMHO
                 </div>
               </div>
               
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-black text-white mb-3 sm:mb-4 tracking-tighter leading-tight break-keep font-sans">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white mb-2 sm:mb-3 tracking-tighter leading-tight break-keep font-sans">
                 E-7 외국인 근로자 인성검사
-                <span className="text-[#009539] font-sans font-bold tracking-widest mt-3 block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl drop-shadow-md">
+                <span className="text-[#009539] font-sans font-bold tracking-widest mt-2 block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl drop-shadow-md">
                   PERSONALITY ASSESSMENT
                 </span>
               </h1>
-              <p className="text-slate-400 text-[10px] sm:text-xs font-mono tracking-[0.3em] mt-5 sm:mt-8 opacity-70">BUILD V40.DX_PRO</p>
             </div>
 
-            <div className="relative z-10 flex flex-col gap-4 max-w-[280px] sm:max-w-xs mx-auto w-full">
+            <div className="relative z-10 flex flex-col gap-3.5 max-w-[300px] sm:max-w-xs mx-auto w-full">
               <button
                 onClick={handleInitializeSystem}
-                className="w-full py-3 sm:py-4 text-[15px] font-sans font-bold tracking-widest flex items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-[#002c5f] to-[#009539] text-white shadow-xl hover:shadow-[0_0_20px_rgba(0,149,57,0.4)] transition-all hover:-translate-y-1"
+                className="w-full py-4 text-[15px] font-sans font-bold tracking-widest flex items-center justify-center gap-3 rounded-xl text-white shadow-xl transition-all hover:-translate-y-0.5 cursor-pointer bg-gradient-to-r from-[#002c5f] to-[#009539] hover:shadow-[0_0_25px_rgba(0,149,57,0.5)]"
               >
-                <span>시작하기</span>
+                <span>검사 시작하기</span>
                 <ArrowRight className="w-4 h-4 text-white animate-bounce-horizontal" />
               </button>
-              <div className="flex justify-center gap-2 mt-2">
+
+              <div className="flex justify-center gap-2 mt-1">
                 {["KO", "VN", "ID", "EN", "NP"].map((l) => (
                   <span key={l} className="py-1 rounded bg-white/5 border border-white/10 text-[10px] text-slate-300 font-mono font-bold shadow-sm inline-block w-[40.3333px] text-center">
                     {l}
@@ -1084,16 +1826,16 @@ export default function App() {
               </div>
             </div>
 
-            <div className="relative z-10 mt-8 sm:mt-12 pt-6 border-t border-slate-700/50 flex justify-between items-center text-[9px] sm:text-[10px] font-mono text-slate-400 tracking-[0.2em]">
+            <div className="relative z-10 mt-8 pt-5 border-t border-slate-700/50 flex justify-between items-center text-[9px] sm:text-[10px] font-mono text-slate-400 tracking-[0.2em]">
               <div className="flex items-center gap-2">
                 <span className="text-[#009539]">●</span>
                 <span>LOCAL_DB: <span className="text-white font-bold">{localData.length}</span></span>
               </div>
               <div className="flex items-center gap-1.5">
                 {isOnline ? (
-                  <span className="text-blue-500">SECURE CONNECTION (ONLINE)</span>
+                  <span className="text-blue-400">SECURE ONLINE</span>
                 ) : (
-                  <span className="text-red-500 animate-pulse font-bold">OFFLINE MODE ACTIVATED</span>
+                  <span className="text-red-400 animate-pulse font-bold">OFFLINE</span>
                 )}
               </div>
             </div>
@@ -1150,18 +1892,38 @@ export default function App() {
 
               {lang && (
                 <>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-300 mb-1.5 tracking-wider ml-1">
-                      {UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].companyLabel}
-                    </label>
-                    <input
-                      type="text"
-                      value={candidateInfo.company}
-                      onChange={(e) => setCandidateInfo({ ...candidateInfo, company: e.target.value })}
-                      className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
-                      placeholder={UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].companyPlaceholder}
-                    />
-                  </div>
+                  {candidateInfo.company ? (
+                    <div className="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 flex justify-between items-center text-xs shadow-inner">
+                      <div>
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                          {UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].companyLabel}
+                        </span>
+                        <span className="text-sm font-black text-white">{candidateInfo.company}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                          검사 일자
+                        </span>
+                        <span className="text-xs font-mono font-bold text-cyan-400">
+                          {candidateInfo.date || new Date().toISOString().slice(0, 10)}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1.5 tracking-wider ml-1">
+                        {UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].companyLabel}
+                      </label>
+                      <input
+                        type="text"
+                        value={candidateInfo.company}
+                        onChange={(e) => setCandidateInfo({ ...candidateInfo, company: e.target.value })}
+                        className="w-full bg-slate-900/80 border border-slate-700 text-white rounded-lg px-4 py-3 sm:py-3.5 text-[15px] focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600 shadow-inner"
+                        placeholder={UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].companyPlaceholder}
+                      />
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-bold text-slate-300 mb-1.5 tracking-wider ml-1">
@@ -1188,6 +1950,11 @@ export default function App() {
                       />
                     </div>
                   </div>
+                  {lang === "id" && (
+                    <p className="text-[11px] text-cyan-300 bg-cyan-950/40 border border-cyan-800/60 rounded-lg p-2.5 leading-relaxed font-sans">
+                      💡 <strong>Catatan:</strong> Jika Anda hanya memiliki satu kata nama (tanpa marga/nama belakang), cukup isi pada kolom <strong>Nama Lengkap / Nama Depan</strong> saja.
+                    </p>
+                  )}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-300 mb-1.5 tracking-wider ml-1">
                       {UI_TEXT[(lang || "en") as keyof typeof UI_TEXT].idLabel}
@@ -1217,7 +1984,8 @@ export default function App() {
                     showToast("Please select a language first.", "error");
                     return;
                   }
-                  if (!candidateInfo.lastName || !candidateInfo.firstName || !candidateInfo.id || !candidateInfo.company) {
+                  const hasName = Boolean(candidateInfo.firstName.trim() || candidateInfo.lastName.trim());
+                  if (!hasName || !candidateInfo.id.trim() || !candidateInfo.company.trim()) {
                     const msg = lang === "kr" ? "성명, 수험번호, 업체명을 모두 입력해주세요." : 
                                 lang === "vn" ? "Vui lòng nhập đầy đủ tên, số báo danh và tên công ty." :
                                 lang === "id" ? "Harap masukkan nama, nomor peserta, dan nama perusahaan." :
@@ -1229,7 +1997,7 @@ export default function App() {
                   setCurrentView("guide");
                 }}
                 className={`flex-[2] py-3.5 font-bold text-xs tracking-widest rounded-xl transition-all shadow-lg text-white ${
-                  !lang || !candidateInfo.lastName || !candidateInfo.firstName || !candidateInfo.id || !candidateInfo.company 
+                  !lang || !(candidateInfo.firstName.trim() || candidateInfo.lastName.trim()) || !candidateInfo.id.trim() || !candidateInfo.company.trim()
                     ? "bg-blue-600/50 opacity-50 cursor-not-allowed" 
                     : "bg-blue-600 hover:bg-blue-500 hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(37,99,235,0.3)]"
                 }`}
@@ -1446,7 +2214,7 @@ export default function App() {
             <div className="flex flex-col gap-3 sm:gap-4 w-full">
               <button
                 onClick={() => {
-                  setCandidateInfo({ firstName: "", lastName: "", id: "", company: "" });
+                  setCandidateInfo({ firstName: "", lastName: "", id: "", company: "", date: "" });
                   setCurrentView("home");
                 }}
                 className="btn-premium w-full py-4 sm:py-5 text-sm sm:text-base font-display font-bold tracking-widest rounded"
@@ -1522,51 +2290,95 @@ export default function App() {
                   </span>
                 </h2>
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
                 <button
-                  onClick={() => syncWithGoogleSheet(true)}
-                  disabled={syncing}
-                  className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded font-mono text-xs hover:bg-slate-100 hover:border-slate-400 hover:text-slate-900 transition flex items-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
+                  onClick={() => setShowAdminSimulator(true)}
+                  className="bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5 border border-indigo-400/30"
+                  title="관리자 전용 모의 테스트 생성 및 검사 시뮬레이터"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
-                  <span>CLOUD SYNC</span>
-                </button>
-                <label className="cursor-pointer bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 hover:text-slate-900 px-4 py-2 rounded font-mono text-xs transition shadow-sm flex items-center gap-2">
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>IMPORT DATA</span>
-                  <input
-                    type="file"
-                    accept=".xlsx, .xls, .json"
-                    className="hidden"
-                    onChange={handleExcelImport}
-                  />
-                </label>
-                <button
-                  onClick={handleExcelExport}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded font-mono text-xs shadow-md transition cursor-pointer font-bold"
-                >
-                  EXPORT EXCEL
+                  <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+                  <span>⚡ 모의 테스트 & 시뮬레이터</span>
                 </button>
                 <button
                   onClick={() => {
                     setCurrentView("total-report");
                   }}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded font-mono text-xs shadow-md transition cursor-pointer font-bold"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
                 >
-                  TOTAL REPORT
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span>TOTAL REPORT</span>
+                </button>
+                <button
+                  onClick={() => setShowQrAdminModal(true)}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+                  title="응시용 QR 코드 및 A4 포스터 인쇄"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>QR CODE</span>
+                </button>
+                <button
+                  onClick={handleExcelExport}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-md transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>EXPORT EXCEL</span>
                 </button>
                 <button
                   onClick={handleDeleteSelected}
-                  className="bg-white border border-red-300 text-red-600 px-4 py-2 rounded font-mono text-xs hover:bg-red-50 hover:border-red-400 transition shadow-sm cursor-pointer"
+                  className={`border px-3.5 py-2 rounded-lg font-bold text-xs transition flex items-center gap-1.5 cursor-pointer ${
+                    selectedKeys.length > 0
+                      ? "bg-red-50 border-red-400 text-red-600 hover:bg-red-100 shadow-sm"
+                      : "border-slate-300 text-slate-400 hover:bg-slate-50"
+                  }`}
+                  title={selectedKeys.length > 0 ? "선택한 항목 삭제" : "삭제할 항목을 먼저 선택해주세요"}
                 >
-                  <Trash2 className="w-3.5 h-3.5 inline mr-1" />
-                  DELETE
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>DELETE{selectedKeys.length > 0 ? ` (${selectedKeys.length})` : ""}</span>
                 </button>
                 <button
                   onClick={() => setCurrentView("home")}
-                  className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded font-mono text-xs shadow-sm cursor-pointer font-bold"
+                  className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg font-bold text-xs shadow-sm cursor-pointer flex items-center gap-1.5 transition"
                 >
-                  EXIT ADMIN
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>EXIT ADMIN</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Multi-Source Live Data Diagnostic Status Bar */}
+            <div className="px-6 py-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white flex flex-wrap items-center justify-between gap-3 text-xs font-mono border-b border-slate-700 shadow-inner">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                  데이터 통합 연동
+                </span>
+                <span className="bg-slate-800/90 px-2.5 py-1 rounded border border-cyan-500/40 text-cyan-200 shadow-sm">
+                  ☁️ Firebase: <strong>{firebaseData.length}</strong>건
+                </span>
+                <span className="bg-slate-800/90 px-2.5 py-1 rounded border border-emerald-500/40 text-emerald-300 shadow-sm">
+                  📗 구글 시트: <strong>{sheetData.length}</strong>건
+                </span>
+                <span className="bg-slate-800/90 px-2.5 py-1 rounded border border-blue-500/40 text-blue-300 shadow-sm">
+                  💻 브라우저 로컬: <strong>{localData.length}</strong>건
+                </span>
+                {fileData.length > 0 && (
+                  <span className="bg-slate-800/90 px-2.5 py-1 rounded border border-purple-500/40 text-purple-300 shadow-sm">
+                    📁 파일 업로드: <strong>{fileData.length}</strong>건
+                  </span>
+                )}
+                <span className="bg-blue-600/40 px-3 py-1 rounded border border-blue-400 text-white font-bold shadow-sm">
+                  🎯 총 통합 응시자: {mergedData.length}명
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-400 text-[11px]">
+                {lastSyncTime && <span>동기화: {lastSyncTime}</span>}
+                <button
+                  onClick={() => syncAllCloudData(true)}
+                  disabled={syncing}
+                  className="bg-cyan-600/30 hover:bg-cyan-600/50 text-cyan-200 border border-cyan-500/50 px-2.5 py-1 rounded transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 font-sans font-medium"
+                >
+                  <RefreshCw className={`w-3 h-3 ${syncing ? "animate-spin text-cyan-300" : ""}`} />
+                  <span>{syncing ? "동기화 중..." : "새로고침"}</span>
                 </button>
               </div>
             </div>
@@ -1622,7 +2434,7 @@ export default function App() {
                     <th className="px-3 py-4 text-center w-[40px]">
                       <input
                         type="checkbox"
-                        checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
+                        checked={filteredData.length > 0 && selectedKeys.length === filteredData.length}
                         onChange={(e) => handleToggleAll(e.target.checked)}
                         className="w-4 h-4 cursor-pointer accent-blue-600 rounded"
                       />
@@ -1679,12 +2491,13 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-transparent font-medium text-xs text-slate-800">
-                  {filteredData.map((r) => {
-                    const isSelected = selectedIds.includes(r.id);
+                  {filteredData.map((r, idx) => {
+                    const rowKey = getRecordKey(r, idx);
+                    const isSelected = selectedKeys.includes(rowKey);
                     const gradeKey = r.decision.split(" ")[0];
                     return (
                       <tr
-                        key={r.id}
+                        key={rowKey}
                         className={`hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-200 ${
                           isSelected ? "bg-blue-50" : ""
                         }`}
@@ -1697,7 +2510,7 @@ export default function App() {
                           <input
                             type="checkbox"
                             checked={isSelected}
-                            onChange={() => handleToggleRow(r.id)}
+                            onChange={() => handleToggleRow(rowKey)}
                             className="w-4 h-4 cursor-pointer accent-blue-600 rounded border-slate-300"
                           />
                         </td>
@@ -1738,15 +2551,25 @@ export default function App() {
                           </span>
                         </td>
                         <td className="px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => {
-                              setViewingResult(r);
-                              setCurrentView("report");
-                            }}
-                            className="bg-white hover:bg-blue-600 hover:text-white border border-slate-300 hover:border-blue-500 text-slate-700 px-2.5 py-1.5 rounded text-[10px] font-bold transition cursor-pointer shadow-sm"
-                          >
-                            VIEW
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setViewingResult(r);
+                                setCurrentView("report");
+                              }}
+                              className="bg-white hover:bg-blue-600 hover:text-white border border-slate-300 hover:border-blue-500 text-slate-700 px-2.5 py-1.5 rounded text-[10px] font-bold transition cursor-pointer shadow-sm"
+                            >
+                              VIEW
+                            </button>
+                            <button
+                              onClick={(e) => handleOpenEditModal(r, e)}
+                              className="bg-slate-50 hover:bg-amber-500 hover:text-white border border-slate-300 hover:border-amber-500 text-slate-700 px-2.5 py-1.5 rounded text-[10px] font-bold transition cursor-pointer shadow-sm flex items-center gap-1 group"
+                              title="응시자 정보 수정"
+                            >
+                              <Edit3 className="w-3 h-3 text-amber-600 group-hover:text-white" />
+                              <span>EDIT</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1778,8 +2601,8 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map(r => (
-                    <tr key={r.id}>
+                  {filteredData.map((r, idx) => (
+                    <tr key={getRecordKey(r, idx)}>
                       <td style={{ textAlign: "center" }}>{r.company}</td>
                       <td style={{ textAlign: "center" }}>{r.id}</td>
                       <td style={{ textAlign: "center" }}>{r.name}</td>
@@ -1810,20 +2633,40 @@ export default function App() {
       {currentView === "report" && viewingResult && (
         <div className="flex-grow w-full max-w-7xl mx-auto p-4 md:p-8 min-h-screen flex flex-col items-center overflow-x-auto print:overflow-visible print:p-0 print:m-0 print:block">
           
-          {/* Print Guide Notice (no-print) */}
-          <div className="no-print bg-white border border-blue-500/30 rounded-xl p-5 mb-8 text-slate-800 max-w-[210mm] w-full shadow-lg">
-            <div className="flex items-center gap-3 mb-3 border-b border-slate-200 pb-2">
-              <span className="text-xl">💡</span>
-              <h3 className="font-bold text-base text-blue-600">인쇄 및 PDF 저장 가이드</h3>
+          {/* Top Quick Control Bar (no-print) */}
+          <div className="no-print w-full max-w-[210mm] flex justify-between items-center mb-4 bg-slate-900 text-white p-3 sm:p-4 rounded-xl border border-slate-800 shadow-lg flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-bold text-slate-200">
+                👤 <strong className="text-white">{formatCandidateName(viewingResult.name)}</strong> ({formatCandidateId(viewingResult.id)})
+              </span>
+              <span className="text-xs text-slate-400 font-mono hidden sm:inline">
+                | {viewingResult.company}
+              </span>
             </div>
-            <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm text-slate-600 leading-relaxed pl-1">
-              <li>
-                <strong className="text-slate-900">배경 그래픽 포함 옵션이란?</strong> 웹 브라우저는 인쇄 시 기본적으로 용지 및 잉크 절약을 위해 배경 색상과 그래픽을 모두 제거하고 흰 페이지만 출력합니다. 보고서의 어두운 세련된 스타일, 종합 그래프 및 점수 게이지 바가 정상적으로 출력되기 위해 인쇄 창의 <span className="text-blue-600 font-bold underline">['설정 더보기' - '배경 그래픽']</span>(혹은 '배경색 및 이미지 인쇄') 옵션을 <span className="text-blue-600 font-bold">반드시 체크(활성화)</span>하여 출력해 주십시오.
-              </li>
-              <li>
-                <strong className="text-slate-900">A4 용지 1장 완벽 최적화:</strong> 본 보고서 서식은 A4 용지 규격(210mm x 297mm) 정확히 한 장에 모든 역량 데이터가 균형 있게 배치되도록 최적화되어 있습니다. 인쇄 대상에서 <span className="text-blue-600 font-bold">['PDF로 저장']</span>을 누르고 저장하시면 한 페이지짜리 깔끔한 고품질 공식 보고서 파일이 탄생합니다. (하단의 'AI 심층 분석 리포트'를 생성한 경우에는 자동으로 2번째 페이지로 매끄럽게 연결됩니다.)
-              </li>
-            </ul>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleOpenEditModal(viewingResult)}
+                className="bg-amber-500 hover:bg-amber-400 text-white px-4 py-2 rounded-lg text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>정보 수정 (EDIT)</span>
+              </button>
+              <button
+                onClick={handlePrintReport}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🖨️ 인쇄/PDF</span>
+              </button>
+              <button
+                onClick={() => {
+                  setViewingResult(null);
+                  setCurrentView("admin-dashboard");
+                }}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3.5 py-2 rounded-lg text-xs font-mono transition cursor-pointer border border-slate-700"
+              >
+                대시보드
+              </button>
+            </div>
           </div>
 
           {/* Print/PDF Page layout */}
@@ -2031,13 +2874,21 @@ export default function App() {
           </div>
 
           {/* Action buttons footer */}
-          <div className="text-center no-print my-10 flex gap-4" style={{ fontFamily: "Verdana" }}>
+          <div className="text-center no-print my-10 flex flex-wrap gap-4 justify-center" style={{ fontFamily: "Verdana" }}>
             <button
-              onClick={handlePrintReport}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold shadow-lg transition cursor-pointer"
+              onClick={() => handleOpenEditModal(viewingResult)}
+              className="bg-amber-500 hover:bg-amber-400 text-white px-7 py-4 rounded-xl font-bold shadow-lg transition cursor-pointer flex items-center gap-2"
               style={{ fontFamily: "system-ui" }}
             >
-              🖨️ 인쇄 / PDF 저장
+              <Edit3 className="w-4 h-4" />
+              <span>✏️ 응시자 정보 수정</span>
+            </button>
+            <button
+              onClick={handlePrintReport}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-bold shadow-lg transition cursor-pointer flex items-center gap-2"
+              style={{ fontFamily: "system-ui" }}
+            >
+              <span>🖨️ 인쇄 / PDF 저장</span>
             </button>
             <button
               onClick={() => {
@@ -2054,7 +2905,7 @@ export default function App() {
       )}
       {/* ----------------- VIEW: TOTAL REPORT ----------------- */}
       {currentView === "total-report" && (
-        <TotalReport data={filteredData} onClose={() => setCurrentView("admin-dashboard")} />
+        <TotalReport data={mergedData} onClose={() => setCurrentView("admin-dashboard")} />
       )}
     </div>
     </div>

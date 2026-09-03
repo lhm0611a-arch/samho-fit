@@ -37,20 +37,76 @@ export function formatCandidateId(id: string): string {
   return formatted.toUpperCase();
 }
 
+/**
+ * 수험번호 자연 정렬 (Natural Sort):
+ * 예: K-01, K-02, ..., K-99, K-100 순으로 자리수(2자리, 3자리 등)에 상관없이
+ * 아라비아 숫자 오름차순으로 정확하게 정렬
+ */
+export function compareCandidateId(idA?: string, idB?: string): number {
+  if (!idA && !idB) return 0;
+  if (!idA) return 1;
+  if (!idB) return -1;
+
+  const aFormatted = formatCandidateId(idA);
+  const bFormatted = formatCandidateId(idB);
+
+  // 1. Natural sort (numeric: true를 통해 문자열 내 숫자를 아라비아 숫자값으로 비교)
+  const cmp = aFormatted.localeCompare(bFormatted, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+  if (cmp !== 0) return cmp;
+
+  // 2. 숫자가 같을 경우(예: K-01 vs K-1) 안정적 정렬
+  return idA.localeCompare(idB);
+}
+
+export function getRecordKey(r: AssessmentResult, idx?: number): string {
+  if (!r) return `rec_${idx ?? Math.random()}`;
+  if (r.docId) return `doc_${r.docId}`;
+  const idPart = formatCandidateId(r.id || "");
+  const namePart = formatCandidateName(r.name || "");
+  const datePart = (r.date || "").replace(/[^0-9]/g, "");
+  const companyPart = (r.company || "").replace(/[^a-zA-Z0-9가-힣]/g, "");
+  const sourcePart = (r.source || "").replace(/[^a-zA-Z0-9가-힣]/g, "");
+  const idxPart = idx !== undefined ? `_${idx}` : "";
+  return `${idPart}_${namePart}_${datePart}_${companyPart}_${sourcePart}${idxPart}`;
+}
+
 export function parseDateStrict(v: any): Date {
   if (!v) return new Date();
-  let s = String(v).trim();
-  let m = s.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-  if (m) return new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
-  m = s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
-  if (m) return new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+  const s = String(v).trim();
+  if (!s || s === "-") return new Date();
+
+  // 1. ISO format (e.g., 2026-01-30T15:00:00.000Z)
+  if (s.includes("T") && !isNaN(Date.parse(s))) {
+    return new Date(s);
+  }
+
+  // 2. YYYY-MM-DD or YYYY.MM.DD or YYYY/MM/DD (Korean or standard formats)
+  let m = s.match(/(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/);
+  if (m) {
+    return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  }
+
+  // 3. DD/MM/YYYY or DD-MM-YYYY (e.g., "09:56:16 31/1/2026" or "31/01/2026")
+  m = s.match(/(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{4})/);
+  if (m) {
+    const first = parseInt(m[1], 10);
+    const second = parseInt(m[2], 10);
+    const year = parseInt(m[3], 10);
+    return new Date(year, second - 1, first);
+  }
+
+  // 4. Excel numeric serial date
   if (/^\d{5}(\.\d+)?$/.test(s)) {
     const serial = parseFloat(s);
     const excelEpoch = new Date(1899, 11, 30);
     excelEpoch.setDate(excelEpoch.getDate() + Math.floor(serial));
     return excelEpoch;
   }
-  let d = new Date(s);
+
+  const d = new Date(s);
   if (!isNaN(d.getTime())) return d;
   return new Date();
 }

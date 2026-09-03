@@ -1,0 +1,13 @@
+[
+  {
+    "token": "HD-QR-20260901-56G2R4",
+    "code": "839492",
+    "title": "E-7 외국인 근로자 인성검사 (24시간 인증 세션)",
+    "createdAt": "2026-09-01T03:46:10.677Z",
+    "expiresAt": "2026-09-02T03:46:10.677Z",
+    "createdTimestamp": 1788234370677,
+    "expiresTimestamp": 1788320770677,
+    "isActive": true,
+    "usedCount": 1
+  }
+]
