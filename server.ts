@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -7,7 +8,7 @@ import { GoogleGenAI } from "@google/genai";
 import { QUESTIONS_FULL, MGMT_GUIDE } from "./src/questions";
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -512,13 +513,22 @@ async function generateContentWithRetry(ai: any, params: any, retries = 3, delay
 
 app.post("/api/generate-ai-report", async (req, res) => {
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Resolve Gemini API Key (support GEMINI_API_KEY, GOOGLE_API_KEY, or VITE_GEMINI_API_KEY)
+    let apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.VITE_GEMINI_API_KEY;
+    // Fallback to apiKey only if it's NOT the Firebase Web API key
+    if (!apiKey && process.env.apiKey && !process.env.apiKey.startsWith("AIzaSyC_fQq")) {
+      apiKey = process.env.apiKey;
+    }
+
     if (!apiKey) {
       return res.status(400).json({
         error: true,
-        message: "Gemini API Key is not configured on the server side. Please set GEMINI_API_KEY.",
+        message: "Gemini API Key is not configured on the server side. Please set GEMINI_API_KEY in environment variables.",
       });
     }
+
+    const maskedKey = apiKey.length > 8 ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : "***";
+    console.log(`[AI Report] Using API key: ${maskedKey}`);
 
     const { name, id, company, total, decision, reliability, details, answers } = req.body;
 
@@ -611,15 +621,62 @@ ${sRes}
 
 반드시 가독성 높은 마크다운 형식으로 응답해 주십시오.`;
 
-    const aiResponse = await generateContentWithRetry(ai, {
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
+    let aiResponse;
+    const modelToUse = "gemini-3.8-flash";
+    
+    try {
+      aiResponse = await generateContentWithRetry(ai, {
+        model: modelToUse,
+        contents: prompt,
+      });
+    } catch (primaryErr: any) {
+      console.warn(`[Gemini API] Primary model ${modelToUse} failed:`, primaryErr?.message || primaryErr);
+      // Try fallback model if transient or quota error
+      try {
+        aiResponse = await generateContentWithRetry(ai, {
+          model: "gemini-flash-latest",
+          contents: prompt,
+        }, 2, 2000);
+      } catch (fallbackErr: any) {
+        console.warn(`[Gemini API] Fallback model gemini-flash-latest failed:`, fallbackErr?.message || fallbackErr);
+        try {
+          aiResponse = await generateContentWithRetry(ai, {
+            model: "gemini-3.1-flash-lite",
+            contents: prompt,
+          }, 2, 2000);
+        } catch (thirdErr) {
+          throw thirdErr || fallbackErr || primaryErr;
+        }
+      }
+    }
 
     res.json({ success: true, text: aiResponse.text });
   } catch (error: any) {
     console.error("Gemini Generation Error:", error);
-    res.status(500).json({ error: true, message: error.message });
+
+    const errStr = String(error?.message || error || "");
+    let userFriendlyMsg = "AI 리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+
+    if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("Quota exceeded") || errStr.includes("quota")) {
+      userFriendlyMsg = "Google Gemini API 사용량 한도(분당 요청 초과, HTTP 429)에 도달했습니다.\n무료 티어 호출 한도(분당 5회)로 인한 일시적인 제한이므로, 약 30~40초 후 다시 [AI 심층 분석 리포트 생성] 버튼을 눌러주세요.";
+    } else if (errStr.includes("503") || errStr.includes("UNAVAILABLE") || errStr.includes("overloaded")) {
+      userFriendlyMsg = "Gemini AI 서버가 일시적으로 혼잡합니다. 10~20초 후 다시 시도해 주세요.";
+    } else if (errStr.includes("API Key") || errStr.includes("API_KEY")) {
+      userFriendlyMsg = "서버 측 Gemini API 키 설정이 올바르지 않거나 누락되었습니다.";
+    } else {
+      // Try to parse raw JSON error if present
+      try {
+        const jsonMatch = errStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed?.error?.message) {
+            userFriendlyMsg = `AI 서비스 응답 오류: ${parsed.error.message}`;
+          }
+        }
+      } catch (_) {}
+    }
+
+    res.status(500).json({ error: true, message: userFriendlyMsg });
   }
 });
 

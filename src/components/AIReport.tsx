@@ -87,9 +87,15 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
       ) : (
         <div className="text-center no-print my-6">
           {errorMsg && (
-            <p className="text-red-500 text-sm mb-4 font-bold font-sans">
-              ⚠️ {errorMsg}
-            </p>
+            <div className="max-w-xl mx-auto mb-6 p-4 bg-amber-50 border border-amber-300 rounded-xl text-left text-amber-900 shadow-sm font-sans">
+              <div className="flex items-center gap-2 font-black text-amber-800 mb-1.5 text-sm">
+                <span className="text-base">⚠️</span>
+                <span>AI 리포트 생성 실패 및 안내</span>
+              </div>
+              <p className="text-xs sm:text-sm font-medium whitespace-pre-line leading-relaxed text-amber-900">
+                {errorMsg}
+              </p>
+            </div>
           )}
           <button
             onClick={handleGenerateAIReport}
