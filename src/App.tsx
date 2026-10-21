@@ -39,6 +39,8 @@ import {
   formatCandidateName,
   compareCandidateId,
   getRecordKey,
+  getBehavioralDescriptor,
+  getValidityScaleDetails,
   AssessmentResult 
 } from "./utils/calculations";
 import { MainChart } from "./components/MainChart";
@@ -2677,169 +2679,261 @@ export default function App() {
               style={{ 
                 width: "210mm", 
                 height: "297mm", 
-                padding: "15mm 15mm",
+                minHeight: "297mm",
+                maxHeight: "297mm",
+                padding: "21mm 14mm 12mm 14mm",
                 boxSizing: "border-box",
                 pageBreakAfter: "always",
-                overflow: "hidden"
+                overflow: "hidden",
+                fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif"
               }}
             >
               {/* Header: Title and Candidate Info */}
-              <div className="flex justify-between items-start border-b-[3px] border-slate-800 pb-4 mb-5 shrink-0">
+              <div className="flex justify-between items-start border-b-[2px] border-[#002c5f] pb-2 mb-2.5 shrink-0">
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-2 mb-2">
-                    <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-8 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  <div className="flex items-center gap-2 mb-1">
+                    <img src="/ci.png" alt="HD HYUNDAI SAMHO" className="h-6 object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   </div>
-                  <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">인성검사 평가 결과</h1>
-                  <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest font-mono">Personality Assessment Report</p>
+                  <h1 className="text-[21px] font-black text-[#002c5f] tracking-tight leading-none mb-1">인성검사 평가 결과 보고서</h1>
+                  <p className="text-[9.5px] font-bold text-slate-500 uppercase tracking-wider">HD HYUNDAI SAMHO DX_PRO Assessment Report</p>
                 </div>
                 
                 <div className="flex flex-col items-end text-right">
-                  <div className="bg-slate-800 text-white text-[10px] px-2 py-0.5 rounded-sm font-bold tracking-widest font-mono mb-3">
-                    OFFICIAL DOCUMENT
+                  <div className="bg-[#002c5f] text-white text-[8.5px] px-2 py-0.5 rounded-xs font-bold tracking-wider mb-1">
+                    OFFICIAL EVALUATION
                   </div>
-                  <div className="text-2xl font-black text-slate-900 leading-none mb-1">
-                    {formatCandidateName(viewingResult.name)} <span className="text-lg text-slate-500 font-bold">({formatCandidateId(viewingResult.id)})</span>
+                  <div className="text-[18px] font-black text-slate-900 leading-none mb-1">
+                    {formatCandidateName(viewingResult.name)} <span className="text-[13px] text-slate-500 font-bold tabular-nums">({formatCandidateId(viewingResult.id)})</span>
                   </div>
-                  <div className="text-[17px] font-bold text-slate-600 font-mono">
+                  <div className="text-[11.5px] font-bold text-slate-600 tabular-nums">
                     {getYYYYMMDD(viewingResult.date)} | {viewingResult.company} | NATION: {viewingResult.lang ? viewingResult.lang.toUpperCase() : "N/A"}
                   </div>
                 </div>
               </div>
 
-              {/* KPI Score Cards & Guide */}
+              {/* 1. Top KPI Score & Gatekeeper Cards (6 Cards with +20% taller height 77px & cohesive typography) */}
               {(() => {
                 const engGradeMatch = viewingResult.decision.match(/\(([^)]+)\)/);
                 const engGrade = engGradeMatch ? engGradeMatch[1] : viewingResult.decision.replace(/[^A-Z0-9]/g, "");
                 const korGrade = viewingResult.decision.split(" ")[0];
                 
                 let gradeGuide = "";
-                if (engGrade === "S") gradeGuide = "조직/직무 역량 탁월 (즉시 투입)";
-                else if (engGrade === "A") gradeGuide = "전반적 역량 우수 (채용 권장)";
-                else if (engGrade === "B1") gradeGuide = "기본 소양 보유 (채용 권장)";
-                else if (engGrade === "B2") gradeGuide = "역량 평이 (초기 멘토링)";
-                else if (engGrade === "C1") gradeGuide = "취약점/신뢰도 저하 (심층 검증)";
-                else if (engGrade === "C2") gradeGuide = "안전의식 낮음 (특별 관리)";
-                else if (engGrade === "D") gradeGuide = "부적응/불성실 (채용 불가)";
-                else gradeGuide = "- (-)";
+                let gradeGuideSub = "";
+                if (engGrade === "S") { gradeGuide = "즉시 투입"; gradeGuideSub = "최우수 추천"; }
+                else if (engGrade === "A") { gradeGuide = "적극 채용"; gradeGuideSub = "우수 인재"; }
+                else if (engGrade === "B1") { gradeGuide = "채용 권고"; gradeGuideSub = "기본 합격"; }
+                else if (engGrade === "B2") { gradeGuide = "조건부 채용"; gradeGuideSub = "멘토링 요망"; }
+                else if (engGrade === "C1") { gradeGuide = "심층 검증"; gradeGuideSub = "교차 면접"; }
+                else if (engGrade === "C2") { gradeGuide = "특별 관리"; gradeGuideSub = "안전 재교육"; }
+                else if (engGrade === "D") { gradeGuide = "채용 불가"; gradeGuideSub = "종합 부적격"; }
+                else { gradeGuide = "판정 보류"; gradeGuideSub = "재검토 대상"; }
                 
                 let gradeColor = "#10b981";
                 if (engGrade === "S") gradeColor = "#4f46e5";
                 else if (engGrade === "A") gradeColor = "#2563eb";
-                else if (engGrade === "B2") gradeColor = "#fbbf24";
-                else if (engGrade === "C1") gradeColor = "#f59e0b";
-                else if (engGrade === "C2") gradeColor = "#ea580c";
-                else if (engGrade === "D") gradeColor = "#ef4444";
+                else if (engGrade === "B2") gradeColor = "#d97706";
+                else if (engGrade === "C1") gradeColor = "#ea580c";
+                else if (engGrade === "C2") gradeColor = "#c2410c";
+                else if (engGrade === "D") gradeColor = "#dc2626";
 
                 let relText = viewingResult.reliability.split(" (")[0];
                 if (relText === "매우 높음") relText = "높음";
                 else if (relText === "주의 요망") relText = "주의";
                 else if (relText === "해석 불가") relText = "불가";
                 
-                const relColor = viewingResult.reliability.includes("V1") || viewingResult.reliability.includes("V2") ? "#10b981" : viewingResult.reliability.includes("V3") ? "#fbbf24" : "#ef4444";
+                const relCode = viewingResult.reliability.includes("V1") ? "V1" : viewingResult.reliability.includes("V2") ? "V2" : viewingResult.reliability.includes("V3") ? "V3" : "V4";
+                const relColor = relCode === "V1" || relCode === "V2" ? "#10b981" : relCode === "V3" ? "#d97706" : "#dc2626";
+                const relSub = relCode === "V1" ? "신뢰도 최우수" : relCode === "V2" ? "판단 타당" : relCode === "V3" ? "해석 주의" : "신뢰 불가";
+
+                // 안전 적합성 판별 (Gatekeeper)
+                const isSafetyFail = viewingResult.diagnosis?.sFail || (viewingResult.details?.S1 || 0) < 60 || (viewingResult.details?.S2 || 0) < 60;
+                const isSafetyCaution = !isSafetyFail && ((viewingResult.details?.S1 || 0) < 70 || (viewingResult.details?.S2 || 0) < 70);
+
+                let safetyText = "PASS (적합)";
+                let safetySub = "안전 기준 통과";
+                let safetyColor = "#10b981";
+                if (isSafetyFail) {
+                  safetyText = "FAIL (과락)";
+                  safetySub = "안전의식 미달 🚨";
+                  safetyColor = "#dc2626";
+                } else if (isSafetyCaution) {
+                  safetyText = "CAUTION (주의)";
+                  safetySub = "사전 교육 요망";
+                  safetyColor = "#d97706";
+                }
 
                 return (
-                  <div className="grid grid-cols-5 gap-2 mb-6 shrink-0 min-h-[96px]">
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
-                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">종합 점수</div>
-                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
-                        <div className="text-3xl font-black font-sans leading-none text-slate-900 tracking-tight text-center">{viewingResult.total}</div>
+                  <div className="grid grid-cols-6 gap-2 mb-2.5 shrink-0">
+                    {/* 카드 1: 종합 점수 */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg h-[77px] px-1.5 py-1.5 flex flex-col justify-between items-center text-center shadow-xs">
+                      <div className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider h-4 flex items-center justify-center">종합 점수</div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[24px] font-black leading-none text-slate-900 tracking-tight tabular-nums">{viewingResult.total}</span>
+                        <span className="text-[11.5px] font-medium text-slate-500 ml-0.5">점</span>
                       </div>
+                      <div className="text-[9.5px] font-bold text-slate-400 h-3.5 flex items-center justify-center">100점 만점 기준</div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
-                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">종합 판정</div>
-                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
-                        <div className="text-3xl font-black font-sans leading-none tracking-tight text-center" style={{ color: gradeColor }}>
+
+                    {/* 카드 2: 종합 판정 */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg h-[77px] px-1.5 py-1.5 flex flex-col justify-between items-center text-center shadow-xs">
+                      <div className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider h-4 flex items-center justify-center">종합 판정</div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[19px] font-black leading-none tracking-tight" style={{ color: gradeColor }}>
                           {korGrade}
-                        </div>
+                        </span>
+                      </div>
+                      <div className="text-[9.5px] font-bold text-slate-400 h-3.5 flex items-center justify-center">
+                        {korGrade === "적격" ? "기준선 충족" : korGrade === "우수" ? "상위 역량" : "요주의 대상"}
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
-                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">등급</div>
-                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
-                        <div className="text-3xl font-black font-sans leading-none tracking-tight text-center" style={{ color: gradeColor }}>
+
+                    {/* 카드 3: 종합 등급 */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg h-[77px] px-1.5 py-1.5 flex flex-col justify-between items-center text-center shadow-xs">
+                      <div className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider h-4 flex items-center justify-center">종합 등급</div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[24px] font-black leading-none tracking-tight" style={{ color: gradeColor }}>
                           {engGrade}
-                        </div>
+                        </span>
+                      </div>
+                      <div className="text-[9.5px] font-bold text-slate-400 h-3.5 flex items-center justify-center">
+                        {engGrade === "S" ? "상위 2%" : engGrade === "A" ? "상위 15%" : engGrade.startsWith("B") ? "적격 범위" : "집중 관리"}
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
-                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">채용 검토</div>
-                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
-                        <div className="text-[12px] font-black font-sans text-slate-800 text-center leading-[1.2] break-keep tracking-tight">
-                          {gradeGuide.split(" (")[0]}
-                          <br />
-                          {gradeGuide.split(" (")[1] && (
-                            <span className="text-[10px] text-slate-500 font-bold">({gradeGuide.split(" (")[1].replace(")", "")})</span>
-                          )}
-                        </div>
+
+                    {/* 카드 4: 현장 안전 적합성 */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg h-[77px] px-1.5 py-1.5 flex flex-col justify-between items-center text-center shadow-xs">
+                      <div className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider h-4 flex items-center justify-center">안전 적합성</div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[14px] font-black tracking-tight" style={{ color: safetyColor }}>
+                          {safetyText}
+                        </span>
+                      </div>
+                      <div className="text-[9.5px] font-bold h-3.5 flex items-center justify-center" style={{ color: safetyColor }}>
+                        {safetySub}
                       </div>
                     </div>
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-3 flex flex-col items-center shadow-sm">
-                      <div className="text-[12px] font-bold text-slate-500 uppercase tracking-wider mb-1 text-center shrink-0">신뢰도</div>
-                      <div className="flex-1 w-full flex items-center justify-center min-h-[50px]">
-                        <div className="text-[26px] font-black font-sans leading-[1.1] tracking-tight text-center whitespace-pre-line" style={{ color: relColor }}>
-                          {relText}
-                        </div>
+
+                    {/* 카드 5: 채용 권고 */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg h-[77px] px-1.5 py-1.5 flex flex-col justify-between items-center text-center shadow-xs">
+                      <div className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider h-4 flex items-center justify-center">채용 권고</div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[14.5px] font-black text-slate-800 tracking-tight">
+                          {gradeGuide}
+                        </span>
+                      </div>
+                      <div className="text-[9.5px] font-bold text-slate-500 h-3.5 flex items-center justify-center">{gradeGuideSub}</div>
+                    </div>
+
+                    {/* 카드 6: 응답 신뢰도 */}
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg h-[77px] px-1.5 py-1.5 flex flex-col justify-between items-center text-center shadow-xs">
+                      <div className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wider h-4 flex items-center justify-center">응답 신뢰도</div>
+                      <div className="flex-1 flex items-center justify-center">
+                        <span className="text-[14px] font-black tracking-tight" style={{ color: relColor }}>
+                          {relText} ({relCode})
+                        </span>
+                      </div>
+                      <div className="text-[9.5px] font-bold h-3.5 flex items-center justify-center" style={{ color: relColor }}>
+                        {relSub}
                       </div>
                     </div>
                   </div>
                 );
               })()}
 
-              {/* Main Content Area: Chart and Table */}
-              <div className="flex-1 flex gap-4 min-h-0 mb-6 w-full">
-                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-lg font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
-                    <span className="text-blue-600">📊</span> 역량 프로파일
-                  </h3>
-                  <div className="flex-1 min-h-0 relative flex items-center justify-center">
+              {/* 2. Main Content Area: 6 Core Macro Radar Profile (Left) vs 12 Detailed Indicator Matrix (Right) (545px로 조율하여 상·하단 비례 최적화) */}
+              <div className="flex gap-2.5 shrink-0 mb-2.5 w-full" style={{ height: "545px" }}>
+                {/* [Left] 6대 역량 프로파일 */}
+                <div className="w-[38%] shrink-0 flex flex-col bg-white border border-slate-200 rounded-xl p-2.5 shadow-xs">
+                  <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 shrink-0">
+                    <h3 className="text-[13.5px] font-black text-slate-900 flex items-center gap-1.5">
+                      <span className="text-[#002c5f]">📊</span> 역량 프로파일
+                    </h3>
+                    <span className="text-[9.5px] text-slate-400 font-bold">6대 핵심 역량 밸런스</span>
+                  </div>
+                  <div className="flex-1 min-h-0 relative flex flex-col justify-between">
                     <MainChart
                       personalDetails={viewingResult.details}
                       averageDetails={averageStatistics}
+                      mainDetails={viewingResult.mainDetails}
                     />
                   </div>
                 </div>
                 
-                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-lg font-black text-slate-800 mb-3 pb-2 border-b border-slate-100 flex items-center gap-2">
-                    <span className="text-blue-600">📋</span> 세부 지표 분석
-                  </h3>
-                  <div className="flex-1 flex flex-col justify-between">
-                    {Object.keys(viewingResult.details).map((k) => {
-                      const s = viewingResult.details[k];
-                      const progressColor = s >= 80 ? "#3b82f6" : s >= 60 ? "#06b6d4" : "#f43f5e";
+                {/* [Right] 12개 세부 지표 분석 & 현장 행동 특성 진단 매트릭스 */}
+                <div className="flex-1 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-2.5 shadow-xs">
+                  <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 shrink-0">
+                    <h3 className="text-[13.5px] font-black text-slate-900 flex items-center gap-1.5">
+                      <span className="text-blue-600">📋</span> 세부 지표 분석
+                    </h3>
+                    <span className="text-[9.5px] text-slate-400 font-bold">현장 행동 특성 진단 매트릭스</span>
+                  </div>
+
+                  {/* 세부 지표 테이블 헤더 (모든 컬럼 가로 중앙 정렬 및 여유 폭 확보) */}
+                  <div className="bg-slate-100/80 border border-slate-200 rounded-t px-1.5 py-1.5 flex items-center text-[9.5px] font-bold text-slate-600 shrink-0 mb-0.5">
+                    <span className="w-[78px] shrink-0 text-center">코드 / 지표명</span>
+                    <span className="w-[36px] shrink-0 text-center">등급</span>
+                    <span className="w-[42px] shrink-0 text-center">점수</span>
+                    <span className="w-[52px] shrink-0 text-center">진단</span>
+                    <span className="flex-1 min-w-0 text-center">현장 행동 관찰 특성 및 진단 소견</span>
+                  </div>
+
+                  {/* 12개 세부 지표 행 목록 (정돈된 행간 및 서체 통일) */}
+                  <div className="flex-1 flex flex-col justify-between divide-y divide-slate-100 overflow-hidden">
+                    {[
+                      "C1", "C2", "R1", "R2", "S1", "S2", "T1", "T2", "E1", "E2", "A1", "A2"
+                    ].map((k) => {
+                      const s = viewingResult.details[k] ?? 0;
+                      const descriptor = getBehavioralDescriptor(k, s);
+                      const isCritical = k === "S1" || k === "S2" || k === "R1";
+                      const isSafetyFail = (k === "S1" || k === "S2") && s < 60;
+
                       const badgeClass =
                         s >= 90
-                          ? "bg-indigo-600"
+                          ? "bg-indigo-600 text-white"
                           : s >= 80
-                          ? "bg-blue-500"
+                          ? "bg-blue-600 text-white"
                           : s >= 60
-                          ? "bg-emerald-500"
+                          ? "bg-emerald-600 text-white"
                           : s >= 40
-                          ? "bg-amber-500"
-                          : "bg-red-500";
+                          ? "bg-amber-500 text-white"
+                          : "bg-red-500 text-white";
                       const gradeLetter = s >= 90 ? "S" : s >= 80 ? "A" : s >= 60 ? "B" : s >= 40 ? "C" : "D";
 
                       return (
-                        <div key={k} className="flex items-center text-[12px]">
-                          <div className="w-[125px] font-bold text-slate-700 whitespace-nowrap flex items-center">
-                            <span className="font-mono text-slate-400 text-[11px] w-6 inline-block">{k}</span>
-                            {MGMT_GUIDE[k]?.title || k}
+                        <div
+                          key={k}
+                          className={`flex items-center px-1.5 py-[3px] text-[10px] transition-colors ${
+                            isSafetyFail ? "bg-red-50/70 rounded" : ""
+                          }`}
+                        >
+                          {/* 1. 코드 & 지표명 (가로·세로 중앙 정렬) */}
+                          <div className="w-[78px] shrink-0 font-bold text-slate-800 flex items-center justify-center gap-1">
+                            <span className="text-slate-400 text-[9px] w-3 tabular-nums">{k}</span>
+                            <span className="text-[10.5px] font-extrabold text-slate-800 tracking-tight">{MGMT_GUIDE[k]?.title || k}</span>
                           </div>
-                          <div className="w-[30px] flex justify-center">
-                            <span className={`inline-block w-5 h-5 leading-[20px] text-center rounded text-[11px] font-black text-white ${badgeClass}`}>
+
+                          {/* 2. 등급 배지 (가로·세로 완벽 중앙 정렬) */}
+                          <div className="w-[36px] shrink-0 flex items-center justify-center">
+                            <span className={`w-4 h-4 leading-[16px] text-center rounded text-[9px] font-bold ${badgeClass}`}>
                               {gradeLetter}
                             </span>
                           </div>
-                          <div className="flex-1 px-3">
-                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                              <div
-                                className="h-full rounded-full"
-                                style={{ width: `${s}%`, backgroundColor: progressColor }}
-                              />
-                            </div>
+
+                          {/* 3. 점수 (가로·세로 완벽 중앙 정렬) */}
+                          <div className="w-[42px] shrink-0 tabular-nums font-black text-[11px] text-slate-900 flex items-center justify-center">
+                            {s}점
                           </div>
-                          <div className="w-[25px] font-extrabold text-right font-sans text-[13px]" style={{ color: progressColor }}>
-                            {s}
+
+                          {/* 4. 상태 태그 (가로·세로 완벽 중앙 정렬) */}
+                          <div className="w-[52px] shrink-0 flex items-center justify-center">
+                            <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-bold border text-center ${descriptor.tagColor}`}>
+                              {descriptor.tag}
+                            </span>
+                          </div>
+
+                          {/* 5. 현장 행동 관찰 특성 설명 (전문 서술) */}
+                          <div className="flex-1 min-w-0 px-2 text-[9.5px] leading-[1.35] text-slate-600 font-medium break-keep">
+                            {descriptor.desc}
                           </div>
                         </div>
                       );
@@ -2848,24 +2942,54 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Text Comments Area */}
-              <div className="flex gap-4 shrink-0 min-h-[190px] mb-2 w-full">
-                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2 shrink-0">
-                    <span className="text-blue-600">📌</span> 종합 판정 의견
+              {/* 3. Text Comments & Scientific Validity Verification Area (높이 255px 및 글씨 크기 12px·줄간격 1.7로 최적화하여 여백 최소화) */}
+              <div className="flex gap-2.5 shrink-0 mb-2 w-full" style={{ height: "255px" }}>
+                {/* [Left] 종합 판정 의견 */}
+                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs overflow-hidden">
+                  <h3 className="text-[13px] font-black text-slate-900 mb-2 pb-1.5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-blue-600">📌</span> 종합 판정 소견
+                    </span>
+                    <span className="text-[9.5px] font-bold text-slate-400">채용 및 현장 적응성 진단</span>
                   </h3>
-                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify">
+                  <div className="flex-1 text-[12px] leading-[1.7] text-slate-700 overflow-y-auto pr-1">
                     <div dangerouslySetInnerHTML={{ __html: generateReportComment(viewingResult) }} />
                   </div>
                 </div>
-                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="text-lg font-black text-slate-800 mb-2 pb-2 border-b border-slate-100 flex items-center gap-2 shrink-0">
-                    <span className="text-blue-600">🔍</span> 응답 신뢰도 분석
+
+                {/* [Right] 응답 신뢰도 & 4대 타당도 척도 검증 */}
+                <div className="flex-1 basis-0 min-w-0 flex flex-col bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs overflow-hidden">
+                  <h3 className="text-[13px] font-black text-slate-900 mb-2 pb-1.5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-blue-600">🔍</span> 응답 신뢰도 & 4대 타당도 검증
+                    </span>
+                    <span className="text-[9.5px] font-bold text-slate-400">심리 검사 왜곡 검증</span>
                   </h3>
-                  <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700 text-justify">
+
+                  {/* 4대 타당도 척도 미니 칩스 */}
+                  <div className="grid grid-cols-4 gap-1.5 mb-2 shrink-0">
+                    {getValidityScaleDetails(viewingResult).map((v) => (
+                      <div key={v.code} className="bg-slate-50 border border-slate-200 rounded p-1.5 text-center">
+                        <div className="text-[10px] font-bold text-slate-600">{v.code}</div>
+                        <div className={`text-[10.5px] font-bold rounded px-0.5 my-0.5 border ${v.statusColor}`}>
+                          {v.status}
+                        </div>
+                        <div className="text-[8.5px] text-slate-500 font-medium truncate">{v.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 신뢰도 상세 해설 */}
+                  <div className="flex-1 text-[12px] leading-[1.7] text-slate-700 overflow-y-auto pr-1">
                     <div dangerouslySetInnerHTML={{ __html: generateReliabilityComment(viewingResult) }} />
                   </div>
                 </div>
+              </div>
+
+              {/* 4. Footer Guide Notice */}
+              <div className="pt-1.5 border-t border-slate-200 flex justify-between items-center text-[9px] text-slate-500 font-medium shrink-0">
+                <span>💡 <strong>현장 활용 안내</strong>: 직종별 최적 배치, 잠재 리스크 대응 및 관리자(반장) 코칭 플랜은 하단의 <strong>[AI 심층 분석 리포트]</strong>를 참조하십시오.</span>
+                <span className="text-slate-400 font-bold tracking-wider">HD HYUNDAI CONFIDENTIAL</span>
               </div>
             </div>
 

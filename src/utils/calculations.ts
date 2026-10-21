@@ -19,6 +19,10 @@ export interface AssessmentResult {
   diagnosis?: {
     l1: number;
     l2: number;
+    kCnt?: number;
+    fCnt?: number;
+    inconsistentCnt?: number;
+    contradictCnt?: number;
     maxC: number;
     sFail: boolean;
     failCnt: number;
@@ -83,10 +87,16 @@ export function parseDateStrict(v: any): Date {
     return new Date(s);
   }
 
+  // 시간(HH:mm[:ss])이 문자열 앞이나 뒤에 함께 포함된 경우 추출하여 유실 방지
+  const timeMatch = s.match(/(?:^|\s)(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  const hh = timeMatch ? parseInt(timeMatch[1], 10) : 0;
+  const mm = timeMatch ? parseInt(timeMatch[2], 10) : 0;
+  const ss = timeMatch && timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+
   // 2. YYYY-MM-DD or YYYY.MM.DD or YYYY/MM/DD (Korean or standard formats)
   let m = s.match(/(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/);
   if (m) {
-    return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10), hh, mm, ss);
   }
 
   // 3. DD/MM/YYYY or DD-MM-YYYY (e.g., "09:56:16 31/1/2026" or "31/01/2026")
@@ -95,7 +105,7 @@ export function parseDateStrict(v: any): Date {
     const first = parseInt(m[1], 10);
     const second = parseInt(m[2], 10);
     const year = parseInt(m[3], 10);
-    return new Date(year, second - 1, first);
+    return new Date(year, second - 1, first, hh, mm, ss);
   }
 
   // 4. Excel numeric serial date
@@ -135,7 +145,11 @@ export function getYYYYMMDD(d: any): string {
 export function calculateAll(name: string, map: Record<number, number>): Omit<AssessmentResult, "id" | "company" | "date" | "source"> {
   const s: Record<string, number> = { C1: 0, C2: 0, R1: 0, R2: 0, S1: 0, S2: 0, T1: 0, T2: 0, E1: 0, E2: 0, A1: 0, A2: 0 };
   const c: Record<string, number> = { C1: 0, C2: 0, R1: 0, R2: 0, S1: 0, S2: 0, T1: 0, T2: 0, E1: 0, E2: 0, A1: 0, A2: 0 };
-  
+
+  // 세부 영역별 정방향/역방향 문항 모순(문항 미숙지 일괄 마킹) 탐지용 누적기
+  const posStats: Record<string, { sum: number; cnt: number }> = {};
+  const revStats: Record<string, { sum: number; cnt: number }> = {};
+
   const ansArr: number[] = [];
   Object.keys(map)
     .map(Number)
@@ -149,12 +163,32 @@ export function calculateAll(name: string, map: Record<number, number>): Omit<As
       const norm = ((val - 1) / 4) * 100;
       s[q.type] += norm;
       c[q.type]++;
+
+      if (q.rev) {
+        if (!revStats[q.type]) revStats[q.type] = { sum: 0, cnt: 0 };
+        revStats[q.type].sum += norm;
+        revStats[q.type].cnt++;
+      } else {
+        if (!posStats[q.type]) posStats[q.type] = { sum: 0, cnt: 0 };
+        posStats[q.type].sum += norm;
+        posStats[q.type].cnt++;
+      }
     }
   });
 
   const sub: Record<string, number> = {};
+  let contradictCnt = 0;
   Object.keys(c).forEach((k) => {
     sub[k] = c[k] > 0 ? Math.round(s[k] / c[k]) : 0;
+
+    // 동일 영역 내 정방향 평균과 역방향 평균의 차이가 60점 이상이면 정·역문항 자기모순 카운트
+    if (posStats[k]?.cnt && revStats[k]?.cnt) {
+      const pAvg = posStats[k].sum / posStats[k].cnt;
+      const rAvg = revStats[k].sum / revStats[k].cnt;
+      if (Math.abs(pAvg - rAvg) >= 60) {
+        contradictCnt++;
+      }
+    }
   });
 
   const main: Record<string, number> = {
@@ -166,19 +200,42 @@ export function calculateAll(name: string, map: Record<number, number>): Omit<As
     A: Math.round(((sub.A1 || 0) + (sub.A2 || 0)) / 2),
   };
 
-  // [수정된 부분] 6대 역량을 모두 포함하되, 조선업 현장 특성에 맞춘 가중치 적용 (총합 6.0)
+  // 6대 역량을 모두 포함하되, 조선업 현장 특성에 맞춘 가중치 적용 (총합 6.0)
   const total = Math.round((main.C * 1.0 + main.R * 1.0 + main.S * 1.5 + main.T * 0.9 + main.E * 0.8 + main.A * 0.8) / 6);
-  
+
+  // 안전 영역 핵심 역문항(58: 보호구 미착용, 61: 안전규칙 무시, 66: 위험 경시, 69: 작업 중 장난) 4개 중 3개 이상에 4~5점(동의) 마킹 시 평균 희석 방지를 위해 안전 과락 처리
+  const safetyRevFail = [58, 61, 66, 69].filter((id) => map[id] >= 4).length >= 3;
+
   const crit = [sub.C1 || 0, sub.C2 || 0, sub.R1 || 0, sub.R2 || 0, sub.S1 || 0, sub.S2 || 0];
-  const sFail = (sub.S1 || 0) < 60 || (sub.S2 || 0) < 60;
+  const sFail = (sub.S1 || 0) < 60 || (sub.S2 || 0) < 60 || safetyRevFail;
   const failCnt = crit.filter((v) => v < 60).length;
   const isCritFail = sFail || failCnt >= 2;
+
+  // 비핵심 역량(T, E, A) 포함 12개 세부 역량 중 중립점(50점) 미만인 심각한 결격 요인 존재 여부 (S/A 등급 제한용)
+  const hasSevereSubWeakness = Object.values(sub).some((v) => v < 50);
 
   let rG = "V1";
   const l1 = [85, 86, 87, 88].filter((i) => map[i] >= 4).length;
   const l2 = [93, 94].filter((i) => map[i] === 5).length;
   const kCnt = Object.values(map).filter((v) => v === 3).length;
-  const fCnt = Object.values(map).filter((v) => v === 1 || v === 5).length;
+
+  // [정합성 보완 1] 허구 문항(85~88, 93~94)에 솔직하게 '1점(전혀 아니다)'으로 응답한 것은 과장/극단 편향이 아니므로 fCnt 모수에서 차감하여 진성 고득점자가 V3로 강등되는 역설 방지
+  const rawFCnt = Object.values(map).filter((v) => v === 1 || v === 5).length;
+  const honestRelOnes = [85, 86, 87, 88, 93, 94].filter((i) => map[i] === 1).length;
+  const fCnt = rawFCnt - honestRelOnes;
+
+  // [정합성 보완 2] 89~92번(REL, rev:true)과 앞쪽 동형 역량 문항(2, 47, 83, 26번) 간의 응답 일관성(Pair Consistency) 검증
+  const consistencyPairs: Array<{ a: number; b: number; sameDir: boolean }> = [
+    { a: 2, b: 89, sameDir: true },   // 일을 미룸 (C1 rev:true <-> REL rev:true)
+    { a: 47, b: 90, sameDir: true },  // 기분 나쁠 때 태도 (E1 rev:true <-> REL rev:true)
+    { a: 83, b: 91, sameDir: true },  // 타인과 일할 때 불편함 (A2 rev:true <-> REL rev:true)
+    { a: 26, b: 92, sameDir: false }, // 실수 인정 (R2 rev:false <-> REL rev:true)
+  ];
+  const inconsistentCnt = consistencyPairs.filter(({ a, b, sameDir }) => {
+    if (map[a] === undefined || map[b] === undefined) return false;
+    const diff = sameDir ? Math.abs(map[a] - map[b]) : Math.abs(map[a] - (6 - map[b]));
+    return diff >= 3; // 동일 내용 문항에 3점 이상 차이 나면 비일관 응답으로 판정
+  }).length;
 
   let maxC = 1;
   let curC = 1;
@@ -197,10 +254,13 @@ export function calculateAll(name: string, map: Record<number, number>): Omit<As
 
   if (l1 >= 3) rG = "V2";
   if (l2 >= 1) rG = "V2";
+  if (inconsistentCnt >= 2 || contradictCnt >= 3) rG = "V2";
   if (kCnt >= 65) rG = "V3";
   if (fCnt >= 75) rG = "V3";
   if (l1 === 4) rG = "V3";
   if (l2 === 2) rG = "V3";
+  if (l1 >= 3 && l2 >= 1) rG = "V3"; // l1(3개 이상)과 l2(1개 이상) 동시 과장 시 V3
+  if (inconsistentCnt >= 3 || contradictCnt >= 5) rG = "V3";
   if (maxC >= 15) rG = "V3";
   if (maxC >= 30) rG = "V4";
   if (maxC >= 90) rG = "V5";
@@ -209,13 +269,13 @@ export function calculateAll(name: string, map: Record<number, number>): Omit<As
   if (rG === "V4" || rG === "V5") {
     dec = "D";
   } else if (rG === "V3") {
-    if (total >= 85 && !isCritFail) dec = "B1";
+    if (total >= 85 && !isCritFail && !hasSevereSubWeakness) dec = "B1";
     else dec = "C";
   } else if (isCritFail) {
     dec = "C";
-  } else if (total >= 91 && (rG === "V1" || rG === "V2") && main.R >= 88 && main.S >= 88 && !isCritFail) {
+  } else if (total >= 91 && (rG === "V1" || rG === "V2") && main.R >= 88 && main.S >= 88 && !isCritFail && !hasSevereSubWeakness) {
     dec = "S";
-  } else if (total >= 81 && (rG === "V1" || rG === "V2")) {
+  } else if (total >= 81 && (rG === "V1" || rG === "V2") && !hasSevereSubWeakness) {
     dec = "A";
   } else if (total < 66) {
     dec = "B2";
@@ -255,7 +315,7 @@ export function calculateAll(name: string, map: Record<number, number>): Omit<As
     mainDetails: main,
     minScore: Math.min(...crit),
     answers: map,
-    diagnosis: { l1, l2, maxC, sFail, failCnt },
+    diagnosis: { l1, l2, kCnt, fCnt, inconsistentCnt, contradictCnt, maxC, sFail, failCnt },
   };
 }
 
@@ -280,6 +340,14 @@ export function generateReportComment(d: any): string {
     baseCode = d.total < 66 ? "B2" : "B1";
   }
 
+  // 역량 과락 없이 순수하게 신뢰도(V3) 이슈로 인해 C1으로 분류된 고득점자(total >= 66) 구분
+  const isV3OnlyC1 =
+    baseCode === "C1" &&
+    !diag.sFail &&
+    (diag.failCnt || 0) < 2 &&
+    (d.total || 0) >= 66 &&
+    String(d.reliability || "").includes("V3");
+
   const sPhrases = [
     "조직 적응력과 직무 수행 역량이 매우 탁월한 최상위 인재군입니다.",
     "업무에 대한 헌신과 책임감이 돋보이며, 현장의 리더로 성장할 잠재력을 지닌 최우수 인력입니다.",
@@ -300,11 +368,17 @@ export function generateReportComment(d: any): string {
     "기본적인 역할 수행은 가능하나, 일부 영역에서 소극적이거나 불안정한 모습이 관찰되므로 정기적인 면담과 관심이 요망됩니다.",
     "현장 투입은 가능하지만 특정 스트레스 요인이나 갈등 상황에 다소 취약할 수 있으므로, 초기 적응 기간 동안 세심한 배려가 필요합니다."
   ];
-  const c1Phrases = [
-    "일부 역량에서 뚜렷한 약점이나 신뢰도 이슈가 감지되어, 현장 배치 시 주의 깊은 검토와 멘토링이 요구됩니다.",
-    "전반적인 역량 점수가 평균을 밑돌고 있으며, 특히 특정 지표에서의 취약점이 두드러져 집중적인 관리 및 지도가 필수적입니다.",
-    "직무 적합성 측면에서 우려되는 부분이 존재하므로, 채용 시 해당 인원의 약점을 보완할 수 있는 적절한 부서 배치 및 멘토링 방안이 마련되어야 합니다."
-  ];
+  const c1Phrases = isV3OnlyC1
+    ? [
+        "표면적인 직무 역량 점수는 양호하나 응답 신뢰도 이슈(과장 또는 편향 응답)가 감지되어, 현장 배치 전 면접을 통한 진위 확인이 요구됩니다.",
+        "역량 지표 수치는 평균 이상이나 자신을 방어적으로 포장하거나 일관성 없이 응답한 흔적이 있어, 실무 면접을 통한 교차 검증이 필수적입니다.",
+        "응답 패턴의 왜곡 가능성으로 인해 주의 등급으로 분류되었습니다. 결과 수치를 그대로 수용하기보다 면접에서 실제 태도를 재확인하시기 바랍니다."
+      ]
+    : [
+        "일부 역량에서 뚜렷한 약점이나 신뢰도 이슈가 감지되어, 현장 배치 시 주의 깊은 검토와 멘토링이 요구됩니다.",
+        "전반적인 역량 점수가 평균을 밑돌거나 특정 핵심 지표에서의 취약점이 두드러져 집중적인 관리 및 지도가 필수적입니다.",
+        "직무 적합성 측면에서 우려되는 부분이 존재하므로, 채용 시 해당 인원의 약점을 보완할 수 있는 적절한 부서 배치 및 멘토링 방안이 마련되어야 합니다."
+      ];
   const c2Phrases = [
     "역량 점수가 현저히 낮아 현장 투입 시 부적응 및 안전 사고 발생 위험이 큽니다. 강도 높은 사전 교육이나 채용 재고가 필요합니다.",
     "조직 적응력과 책임감 등 핵심 지표가 전반적으로 매우 저조하여, 통상적인 현장 업무 수행에 큰 어려움이 따를 것으로 판단됩니다.",
@@ -327,8 +401,8 @@ export function generateReportComment(d: any): string {
   
   comments.push(mainDesc);
 
-  // Tie-breaker priority: Safety > Attendance > Teamwork > Regulation > Adaptation > Emotion
-  const priority = { S: 6, C: 5, T: 4, R: 3, A: 2, E: 1 };
+  // Tie-breaker priority: 핵심 과락 역량(S > C > R)이 일반 역량(T > A > E)보다 항상 우선하도록 정렬
+  const priority = { S: 6, C: 5, R: 4, T: 3, A: 2, E: 1 };
   const getPri = (k: string) => priority[k.charAt(0) as keyof typeof priority] || 0;
 
   const sortedKeys = Object.keys(scores).sort((a, b) => {
@@ -339,14 +413,18 @@ export function generateReportComment(d: any): string {
   const topKey = sortedKeys[0];
   const topScore = scores[topKey];
   
-  // For weakness, if scores are equal, we also want the most critical one to surface.
-  // Wait, if sorting ascending for weakness, we want lower score first. If equal score, higher priority surfaces first.
   const weakSortedKeys = Object.keys(scores).sort((a, b) => {
     if (scores[a] !== scores[b]) return scores[a] - scores[b];
-    return getPri(b) - getPri(a); // higher priority (like S) comes first if scores are equal
+    return getPri(b) - getPri(a);
   });
-  
-  const weakKey = weakSortedKeys[0];
+
+  // 핵심 과락 역량(C1, C2, R1, R2, S1, S2) 중 60점 미만 과락이 존재할 경우, 과락 원인이 된 핵심 역량을 최우선 약점으로 지목
+  const critKeys = ["C1", "C2", "R1", "R2", "S1", "S2"];
+  const failedCritKeys = critKeys
+    .filter((k) => scores[k] !== undefined && scores[k] < 60)
+    .sort((a, b) => (scores[a] !== scores[b] ? scores[a] - scores[b] : getPri(b) - getPri(a)));
+
+  const weakKey = failedCritKeys.length > 0 ? failedCritKeys[0] : weakSortedKeys[0];
   const weakScore = scores[weakKey];
 
   const factorNames: Record<string, string> = {
@@ -400,7 +478,7 @@ export function generateReportComment(d: any): string {
         `<br><br>🚨 <strong class='text-red-600'>[안전 경고]</strong> 최우선적으로 안전 수칙 준수에 대한 경각심이 매우 부족하므로, 현장 내 안전 통제선을 철저히 준수하도록 관리해야 합니다. `
       ];
       detailDesc += p1[seed % p1.length];
-    } else if (weakScore < 50) {
+    } else if (weakScore < 50 || (baseCode === "C1" && failedCritKeys.length >= 2)) {
       const p2 = [
         `특히 <strong>${getStrength(weakKey)}</strong> 측면에서 상당한 취약점이 드러나, 이로 인한 현장 마찰이나 업무 지연이 우려됩니다. `,
         `무엇보다 <strong>${getStrength(weakKey)}</strong> 부분의 저하가 두드러지게 나타나며, 현장에서 예상치 못한 갈등이나 스트레스로 작용할 수 있습니다. `,
@@ -444,25 +522,27 @@ export function generateReportComment(d: any): string {
 
 export function generateReliabilityComment(d: any): string {
   const diag = d.diagnosis || {};
+  const ans = d.answers || {};
+  const isFast = Boolean(d.isTooFast || diag.isTimeCut);
   let msg = "";
   let isLow = false;
   const seed = (d.total || 0) + (d.id ? d.id.charCodeAt(0) : 0);
 
-  if (d.reliability.includes("V1")) {
+  if (d.reliability.includes("V1") && !isFast) {
     const p = [
       "응답의 일관성이 매우 높고, 자신을 투명하게 드러냈습니다. <strong class='text-blue-700'>결과의 신뢰도가 매우 높습니다.</strong>",
       "문항 전반에 걸쳐 솔직하고 일관성 있는 답변 패턴을 보였습니다. <strong class='text-blue-700'>본 검사 결과를 전적으로 신뢰하고 판단 근거로 활용하기에 충분합니다.</strong>",
       "자기 포장 없이 매우 객관적인 태도로 검사에 임하였습니다. <strong class='text-blue-700'>응답 내용의 신빙성이 아주 우수합니다.</strong>"
     ];
     msg = p[seed % p.length];
-  } else if (d.reliability.includes("V2")) {
+  } else if (d.reliability.includes("V2") && !isFast) {
     const p = [
       "전반적으로 일관된 응답을 보였으며, <strong class='text-blue-600'>결과 해석에 무리가 없는 양호한 수준</strong>입니다.",
       "응답 과정에서 특별한 왜곡이나 모순이 발견되지 않았습니다. <strong class='text-blue-600'>결과를 있는 그대로 수용하고 참고할 수 있습니다.</strong>",
       "대부분의 문항에서 정상적인 응답 성향이 관찰되어, <strong class='text-blue-600'>분석 결과의 타당성이 입증되는 보통 이상의 신뢰도를 보입니다.</strong>"
     ];
     msg = p[seed % p.length];
-  } else if (d.reliability.includes("V3")) {
+  } else if (d.reliability.includes("V3") || isFast) {
     const p = [
       "일부 응답에서 신뢰도를 저해할 수 있는 요인이 감지되었습니다. <strong class='text-amber-600'>결과 해석 시 일정 부분 주의가 필요</strong>합니다.",
       "자신을 다소 방어적으로 표현하거나 불규칙하게 응답한 흔적이 일부 발견됩니다. <strong class='text-amber-600'>평가 결과를 맹신하기보다는 참고 자료로 활용할 것을 권장</strong>합니다.",
@@ -481,14 +561,163 @@ export function generateReliabilityComment(d: any): string {
   }
 
   if (isLow) {
+    // 과거 저장된 DB 레코드(diag.kCnt, diag.fCnt가 없는 경우)와도 완벽히 호환되도록 fallback 처리
+    const kCntVal =
+      diag.kCnt !== undefined ? diag.kCnt : Object.values(ans).filter((v) => v === 3).length;
+    const honestOnes = [85, 86, 87, 88, 93, 94].filter((i) => ans[i] === 1).length;
+    const fCntVal =
+      diag.fCnt !== undefined
+        ? diag.fCnt
+        : Object.values(ans).filter((v) => v === 1 || v === 5).length - honestOnes;
+
     const reasons: string[] = [];
     if (diag.l1 >= 3 || diag.l2 >= 1) reasons.push("자신을 지나치게 긍정적으로 포장(사회적 바람직성 편향)");
+    if (kCntVal >= 65) reasons.push("중립('보통') 문항 과다 선택(중심화 경향/판단 유보)");
+    if (fCntVal >= 75) reasons.push("양극단('매우 그렇다/전혀 아니다') 과다 선택(극단적 응답 편향)");
+    if ((diag.inconsistentCnt || 0) >= 3 || (diag.contradictCnt || 0) >= 5) {
+      reasons.push("동일·유사 문항 간 앞뒤 모순 응답(일관성 결여)");
+    }
     if (diag.maxC >= 15) reasons.push("동일한 번호 연속 선택(불성실/찍기 응답)");
-    if (d.isTooFast || diag.isTimeCut) reasons.push("비정상적으로 빠른 응답 속도(문항 미숙지/임의 응답)");
+    if (isFast) reasons.push("비정상적으로 빠른 응답 속도(문항 미숙지/임의 응답)");
     
     if (reasons.length > 0) {
       msg += `<br><br>📌 <strong>주요 의심 사유: ${reasons.join(", ")}</strong><br><span class='text-[0.8rem] text-red-500 font-bold'>※ 면접 시 지원자의 실제 성향 및 태도에 대한 진위 여부를 반드시 재확인하시기 바랍니다.</span>`;
     }
   }
   return msg;
+}
+
+export interface BehavioralDescriptor {
+  desc: string;
+  tag: string;
+  tagColor: string;
+  isCrit: boolean;
+}
+
+export function getBehavioralDescriptor(key: string, score: number): BehavioralDescriptor {
+  const isHigh = score >= 80;
+  const isLow = score < 60;
+
+  switch (key) {
+    case "C1":
+      if (score >= 90) return { desc: "작업 준비 철저 및 출결 완벽, 지각·이탈 없는 최상위 근면성", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "출퇴근 시간 엄수 및 업무 준비 성실, 안정적인 근태 유지", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "통상적인 작업 일과 준수, 환경 변화에 따른 집중도 편차 관리 요망", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "지각 및 자리비움 등 근태 불안정 우려, 작업 시간 준수 밀착 지도 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "C2":
+      if (score >= 90) return { desc: "맡은 공정 끝까지 완수, 높은 사명감과 철저한 품질 기준 준수", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "자신이 맡은 구역 책임 완수, 작업 후 재확인 습관 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "부여된 기본 과업 수행 양호, 마감 및 마무리에 대한 지속적 확인 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "난공정 직면 시 마무리 미흡 가능성, 공정 단계별 철저한 검수 체계 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "R1":
+      if (score >= 90) return { desc: "사내 표준 매뉴얼 및 관리자 지시 철저 준수, 임의 공정 변경 배제", tag: "모범", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "작업 표준 및 규정 준수 태도 우수, 정해진 작업 지침 성실 이행", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "표준 매뉴얼 준수 보통, 숙련도 상승에 따른 임의 작업 방지 주의", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[규정위반 우려] 작업 지시 불응 및 임의 작업 가능성, 공정 규율 엄격 통제", tag: "위험", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true };
+
+    case "R2":
+      if (score >= 90) return { desc: "하자나 과실 발생 시 즉시 자진 보고, 투명하고 정직한 업무 태도", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "작업 과정의 문제점 솔직 보고, 신뢰할 수 있는 작업 기록 유지", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "통상적인 업무 정직성 유지, 경미한 오류 발생 시 신속 보고 습관 유도", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[은폐 주의] 실수나 불량 발생 시 은폐 소지, 주기적인 중간 공정 검수 필수", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "S1":
+      if (score >= 90) return { desc: "보호구 착용 및 안전 절차 철저 준수, 현장 안전 수칙의 엄격한 자율 실행", tag: "안전우수", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false };
+      if (isHigh) return { desc: "안전 장구 완벽 착용 및 안전 규칙 준수, 사고 예방 의식 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "기본 안전장구 착용 양호, 작업 속도 압박 시 안전 절차 생략 방지 지도", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[안전과락 🚨] 보호구 미착용 및 안전 불감증 우려, 즉각적인 안전 통제 필수", tag: "과락", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true };
+
+    case "S2":
+      if (score >= 90) return { desc: "작업장 주변 위험 요인 사전 감지 및 능동적 예방, 방어적 작업 습관 체화", tag: "위험예지", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false };
+      if (isHigh) return { desc: "협착/낙하/화재 위험요인 사전 식별 우수, 신속하고 적절한 위험 회피", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "돌발 위험 대처 무난, 복잡·고위험 구역 투입 시 사전 안전 브리핑 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[위험인지 지체 🚨] 위험 상황 식별 미흡, 단독 고위험 구역 투입 금지 요망", tag: "과락", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true };
+
+    case "T1":
+      if (score >= 90) return { desc: "팀원 간 능동적 협업 및 지원, 원활한 공동 작업 수행과 상호 존중", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "동료와의 협조 태도 양호, 공동 목표 달성을 위한 솔선수범", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "팀 단위 공동 작업 무난히 소화, 다국적 동료 간 배려 및 소통 장려", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[개인주의 성향] 공동 작업 기여도 미흡, 팀워크 협조 분위기 조성 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "T2":
+      if (score >= 90) return { desc: "의견 대립 시 유연하고 성숙한 조율 능력 발휘, 다문화 동료와의 화합력 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "현장 마찰 발생 시 원만한 해결 노력, 타인의 의견 경청 및 수용", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "갈등 발생 시 마찰 회피 경향, 반장/직장의 중재를 통한 원만한 해소 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[현장마찰 주의] 의견 충돌 시 감정 대립 또는 소통 단절, 밀착 중재 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "E1":
+      if (score >= 90) return { desc: "압박 상황에서도 평정심 유지, 충동적 언행 제어 및 감정 통제력 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "작업 중 감정적 동요 적음, 침착하고 안정적인 태도로 업무 진행", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "일반적 정서 통제력 유지, 고강도 연속 작업 시 감정적 피로도 관리 요망", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[감정조절 주의] 불만이나 흥분 시 감정 통제 저하 우려, 온화한 면담 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "E2":
+      if (score >= 90) return { desc: "작업 부하 및 스트레스에 대한 회복탄력성 우수, 지속적인 지구력 발휘", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "고강도 환경 적응력 양호, 어려운 상황에서도 포기하지 않고 인내", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "표준적 스트레스 감내도, 기후/환경 변화 및 교대근무 적응 여부 모니터링", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[번아웃 위험] 환경 부적응 및 조기 이탈 위험성, 고충 상담 지속 지원 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "A1":
+      if (score >= 90) return { desc: "신규 공정 및 장비 조작 신속 습득, 작업 지침 이해도와 실행력 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "새로운 기술 및 지침 습득 빠름, 작업 노하우 응용력 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "기본 기술 습득 양호, 조선소 특화 공정 투입 시 반복 시연 및 숙달 요망", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[학습지체 주의] 작업 지시 이해 지연 가능성, 시각적 작업표준서 활용 필수", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    case "A2":
+      if (score >= 90) return { desc: "조선소 현장 규율 및 조직 문화 빠른 체득, 관리자와의 신뢰 관계 구축 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
+      if (isHigh) return { desc: "회사 방침 및 현장 환경 적극 적응, 조직 내 융화력 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
+      if (!isLow) return { desc: "현장 생활 적응 양호, 한국어 및 현장 소통 능력 향상 지원 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+      return { desc: "[조직부적응 주의] 집단 생활 및 조선소 환경 부적응 우려, 전담 멘토 배정 필수", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+
+    default:
+      return { desc: "현장 작업 수행 양호", tag: "양호", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
+  }
+}
+
+export function getValidityScaleDetails(d: any) {
+  const diag = d.diagnosis || {};
+  const ans = d.answers || {};
+  const isFast = Boolean(d.isTooFast || diag.isTimeCut);
+
+  const kCntVal = diag.kCnt !== undefined ? diag.kCnt : Object.values(ans).filter((v) => v === 3).length;
+  const honestOnes = [85, 86, 87, 88, 93, 94].filter((i) => ans[i] === 1).length;
+  const fCntVal = diag.fCnt !== undefined ? diag.fCnt : Object.values(ans).filter((v) => v === 1 || v === 5).length - honestOnes;
+
+  const v1IsWarn = (diag.inconsistentCnt || 0) >= 3 || (diag.contradictCnt || 0) >= 5;
+  const v2IsWarn = (diag.l1 || 0) >= 3 || (diag.l2 || 0) >= 1;
+  const v3IsWarn = kCntVal >= 65 || fCntVal >= 75;
+  const v4IsWarn = (diag.maxC || 0) >= 15 || isFast;
+
+  return [
+    {
+      code: "V1",
+      name: "일관성 척도",
+      status: v1IsWarn ? "주의" : "정상",
+      statusColor: v1IsWarn ? "text-amber-600 bg-amber-50 border-amber-200" : "text-emerald-700 bg-emerald-50 border-emerald-200",
+      desc: v1IsWarn ? "모순 응답 감지" : "답변 논리 일관",
+    },
+    {
+      code: "V2",
+      name: "사회적 바람직성",
+      status: v2IsWarn ? "주의" : "정상",
+      statusColor: v2IsWarn ? "text-amber-600 bg-amber-50 border-amber-200" : "text-emerald-700 bg-emerald-50 border-emerald-200",
+      desc: v2IsWarn ? "과도한 자기포장" : "솔직한 자기표현",
+    },
+    {
+      code: "V3",
+      name: "응답 편향도",
+      status: v3IsWarn ? "주의" : "정상",
+      statusColor: v3IsWarn ? "text-amber-600 bg-amber-50 border-amber-200" : "text-emerald-700 bg-emerald-50 border-emerald-200",
+      desc: v3IsWarn ? "극단/중립 쏠림" : "고른 척도 분포",
+    },
+    {
+      code: "V4",
+      name: "응답 성실도",
+      status: v4IsWarn ? "위험" : "정상",
+      statusColor: v4IsWarn ? "text-red-700 bg-red-50 border-red-200" : "text-emerald-700 bg-emerald-50 border-emerald-200",
+      desc: v4IsWarn ? "줄세우기/속도과속" : "성실 숙독 완료",
+    },
+  ];
 }
