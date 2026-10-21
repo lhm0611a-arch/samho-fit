@@ -141,9 +141,9 @@ export const MainChart: React.FC<MainChartProps> = ({
   };
 
   return (
-    <div className="w-full h-full flex flex-col justify-between">
+    <div className="w-full h-full flex flex-col justify-center gap-2.5">
       {/* 1. 상단: 6대 핵심 역량 방사형 Radar 차트 (가로·세로 완벽 중앙 정렬) */}
-      <div className="relative flex flex-col items-center justify-center shrink-0 w-full" style={{ height: "225px" }}>
+      <div className="relative flex flex-col items-center justify-center shrink-0 w-full" style={{ height: "230px" }}>
         {/* 범례 */}
         <div className="absolute top-1 right-1 flex items-center gap-2 text-[9px] font-bold z-10">
           <div className="flex items-center gap-1">
