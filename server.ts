@@ -1,6 +1,4 @@
 import "dotenv/config";
-import dns from "node:dns";
-dns.setDefaultResultOrder("ipv4first");
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -490,7 +488,7 @@ app.get("/api/sheets-proxy", async (req, res) => {
 });
 
 // 2. Gemini AI Deep Analysis Report Generation with Robust Retry Logic
-async function generateContentWithRetry(ai: any, params: any, retries = 3, delay = 1000): Promise<any> {
+async function generateContentWithRetry(ai: any, params: any, retries = 3, delay = 1500): Promise<any> {
   try {
     return await ai.models.generateContent(params);
   } catch (error: any) {
@@ -502,12 +500,7 @@ async function generateContentWithRetry(ai: any, params: any, retries = 3, delay
                         errorStr.includes("temporary") || 
                         errorStr.includes("high demand") || 
                         errorStr.includes("UNAVAILABLE") ||
-                        errorStr.includes("overloaded") ||
-                        errorStr.includes("fetch failed") ||
-                        errorStr.includes("ECONNRESET") ||
-                        errorStr.includes("ETIMEDOUT") ||
-                        errorStr.includes("ENETUNREACH") ||
-                        errorStr.includes("socket hang up");
+                        errorStr.includes("overloaded");
     
     if (retries > 0 && isTransient) {
       console.warn(`[Gemini API Warning] Transient error occurred: ${errorStr}. Retrying in ${delay}ms... (Remaining retries: ${retries})`);
@@ -516,73 +509,6 @@ async function generateContentWithRetry(ai: any, params: any, retries = 3, delay
     }
     throw error;
   }
-}
-
-// Fallback Expert Diagnostic Generator (used if network/quota is temporarily unavailable)
-function generateExpertFallbackReport(data: any): string {
-  const { name = "후보자", id = "N/A", company = "협력사", total = 0, decision = "보통 (B1)", details = {} } = data || {};
-  const c1 = Number(details.C1) || 70;
-  const c2 = Number(details.C2) || 70;
-  const r1 = Number(details.R1) || 70;
-  const r2 = Number(details.R2) || 70;
-  const s1 = Number(details.S1) || 70;
-  const s2 = Number(details.S2) || 70;
-  const t1 = Number(details.T1) || 70;
-  const t2 = Number(details.T2) || 70;
-  const e1 = Number(details.E1) || 70;
-  const e2 = Number(details.E2) || 70;
-  const a1 = Number(details.A1) || 70;
-  const a2 = Number(details.A2) || 70;
-
-  const isSafetyFail = s1 < 60 || s2 < 60;
-  const safetyStatus = isSafetyFail 
-    ? "안전 과락 대상자(S1 또는 S2 60점 미만)로서 조선소 고위험 작업 현장 투입 시 중대재해 유발 위험이 높음" 
-    : (s1 >= 80 && s2 >= 80 ? "안전 4대 골든룰 및 보호구 착용 수칙에 대한 철저한 준수 의식을 보유함" : "기본적인 안전 수칙은 인지하나 작업 숙달 시 방심에 의한 불안전 행동 예방이 필요함");
-
-  const rankStr = decision.includes("S") ? "최우수(S)" : decision.includes("A") ? "우수(A)" : decision.includes("B1") ? "보통(B1)" : decision.includes("B2") ? "조건부(B2)" : decision.includes("C") ? "주의(C)" : "부적격(D)";
-
-  return `> 📌 **[종합 판정 요약]**
-> 본 후보자(${name}, ${id})는 종합점수 **${total}점**, 종합등급 **${rankStr}** 판정을 받은 외국인 기능인력으로, ${company} 소속 조선소 건조 현장 적합성 평가를 완료함. 
-> 안전역량 진단 결과, ${safetyStatus}. 
-> 규정 준수(R1/R2: ${r1}점/${r2}점) 및 작업 성실도(C1/C2: ${c1}점/${c2}점)를 바탕으로 공정 지시 이행력은 전반적으로 양호하나, 다국적 협업 및 언어 장벽 극복을 위한 현장 관리자의 지속적 피드백이 권장됨. 
-> 전반적으로 현장 안전 교육 수료 후 공정 투입이 ${isSafetyFail ? "제한되며 심층 재검증이 요망됨" : "적합한 것으로 판단됨"}.
-
-### 1. 생산 관리자(반장/직장) 핵심 브리핑
-* **[지침 1: 현장 작업 지시 및 소통법]**: 직무학습능력(${a1}점) 및 한국어 소통 수준을 감안하여, 구두 지시보다는 표준작업지도서(SOP)의 **사진 및 시각 도면**을 병행하여 1:1로 명확히 시달하고 작업 착수 전 **복명복창(Confirm-back)** 절차를 의무화할 것.
-* **[지침 2: 근태 및 규율 관리 수칙]**: 근태/시간엄수(${c1}점)와 업무책임감(${c2}점)에 기반하여 출근 직후 **TBM(Tool Box Meeting) 100% 참석** 및 작업 전 보호구(안전모·안전벨트·보안경) 체결 상태를 반장이 직접 육안 점검할 것.
-* **[지침 3: 갈등 예방 및 동료 융화 가이드]**: 팀워크(${t1}점) 및 갈등관리(${t2}점) 지표를 바탕으로, 동일 국적 선배 숙련공과 1:1 멘토링을 체결하고 초기 3개월간 언어·문화적 오해로 인한 작업 분쟁을 선제 차단할 것.
-
-### 2. 6대 핵심 역량군 및 세부 지표 정밀 진단
-| 핵심 역량군 (지표 코드) | 현장 강점 요인 (조선소 관점) | 현장 보완 및 주의 요인 (관리자 관점) |
-|:---|:---|:---|
-| **작업 실행 및 성실도 (C1/C2)** | 근태(${c1}점) 및 책임감(${c2}점)이 안정되어 부여된 블록 가공/취부/용접 작업을 성실히 완수하는 태도를 견지함. | 연속 야간 잔업이나 고강도 블록 내부 작업 시 체력 저하로 인한 집중력 감퇴 여부를 관리자가 수시 점검 요망. |
-| **사내 규정 준수 및 윤리성 (R1/R2)** | 사내 규정 준수(${r1}점) 및 정직성(${r2}점)이 양호하여 조선소 내 안전 골든룰 및 작업 지시를 임의 변경하지 않고 정석 시공함. | 자재 운반 및 용접 비드 결함 발생 시 임의 은폐하지 않고 즉각 반장에게 보고하도록 정직성 교육 지속. |
-| **현장 안전 민감도 (S1/S2)** | 안전수칙준수(${s1}점) 및 위험인지(${s2}점) 진단 결과, 밀폐구역 환기 및 화기 작업 전 소화기 비치 등 기본 위험 요소를 인지함. | ${isSafetyFail ? "**[과락 주의]** 고소 족장 작업 시 안전고리 미체결 등 치명적 사고 위험이 있으므로 단독 작업 절대 금지." : "익숙한 반복 작업 구간에서 안전 불감증이 발생하지 않도록 1일 2회 불시 순찰 점검 실시."} |
-| **팀워크 및 현장 융화력 (T1/T2)** | 협업 태도(${t1}점)가 원만하여 반장 및 동료 기능공과의 유대감 형성에 긍정적 의지를 표명함. | 작업 방식 이견 시 언어 표현 한계로 침묵하거나 위축될 수 있으므로 소통 창구를 반장으로 일원화. |
-| **정서 안정 및 인내심 (E1/E2)** | 감정조절(${e1}점)과 인내심(${e2}점)이 준수하여 혹서기/혹한기 옥외 도크 환경에서도 안정적 직무 태도를 유지함. | 기후 부적응이나 향수병으로 인한 일시적 의욕 저하 발생 시 기숙사 생활 지도원과 연계 상담 권장. |
-| **학습 능력 및 환경 적응 (A1/A2)** | 직무학습(${a1}점) 및 환경적응(${a2}점) 지표에 따라 선박 건조 표준 용어 및 도면 기호 습득 속도가 양호함. | 신규 블록 공법 도입 시 적응 기간이 필요하므로 작업 착수 전 숙련 사수의 시범 작업 필수 선행. |
-
-### 3. 현장 안전 수칙 준수 & 잠재 리스크 심층 평가
-| 잠재 리스크 명칭 | 현장 발현 상황 및 조건 | 선제적 통제 및 반장 조치 가이드 |
-|:---|:---|:---|
-| **밀폐구역 유해가스 및 질식 리스크** | 이중바닥(Double Bottom) 등 밀폐구역 내 용접/도장 작업 시 사전 산소 농도 미측정 및 환기팬 미가동 상태 진입 | 작업 착수 전 **밀폐구역 작업허가서(PTW)** 승인 및 산소/유해가스 농도 4대 기준치 측정 후 진입 허용 |
-| **고소작업 족장 추락 리스크** | 블록 탑재 및 외판 고소 작업 시 안전대 이중고리(2-Hook) 미체결 및 발판 미고정 구간 이동 | **안전대 걸이시설 100% 체결** 의무화 및 미체결 적발 시 즉시 작업 중지(Stop Work) 및 재교육 |
-| **화기 작업 불꽃 비산 화재 리스크** | 배관 및 선각 용접/절단 작업 중 불티 비산방지포 미설치 및 인화성 자재 방치 | 용접 반경 11m 이내 가연물 제거, 소화기 2대 전면 비치 및 화재감시자(Fire Watcher) 입회 확인 |
-
-### 4. 실무 면접관용 심층 검증 질문 (STAR 기법)
-* **[면접 검증 질문 1]**: "이전 작업 현장에서 안전모나 안전벨트를 착용하기 불편한 상황일 때 어떻게 대처했는지 구체적인 경험을 말씀해 주십시오."<br>- **검증 의도**: 고온·협소 구역 등 열악한 환경에서도 안전 보호구를 임의 탈착하지 않는 준법 의식(${s1}점) 검증.<br>- **관찰 포인트**: '답답해도 원칙을 지켰다'는 답변의 구체적 정황과 타협 없는 안전 태도 관찰.
-* **[면접 검증 질문 2]**: "한국인 직·반장의 지시 내용 중 도면이나 한국어가 완벽히 이해되지 않았을 때 어떻게 행동하겠습니까?"<br>- **검증 의도**: 임의 시공(가작업) 방지 및 피드백 수용성(${a1}점, ${c2}점) 검증.<br>- **관찰 포인트**: 부끄러워 넘기지 않고 다시 확인(Re-check)을 요청하는 적극적 소통 자세 확인.
-* **[면접 검증 질문 3]**: "국적이 다른 동료와 작업 배분이나 휴게 시간 문제로 의견 차이가 발생했을 때 어떻게 조율하겠습니까?"<br>- **검증 의도**: 다문화 생산 현장에서의 갈등 관리 능력(${t2}점) 및 화합 태도 검증.<br>- **관찰 포인트**: 감정적 대립이나 파벌 형성을 지양하고 반장에게 공식 중재를 요청하는 성숙도 확인.
-
-### 5. 최적 공정 부서 배치 및 조기 정착 실행 계획
-| 관리 지표 | 생산 관리자(반장/직장) 관점의 실행 지침 |
-|:---|:---|
-| **최적 추천 직무/공정** | - **추천 직무**: 선각 소조립/대조립 취부 및 자동/반자동 CO2 용접, 의장 배관 설치 공정<br>- **주의 직무**: ${isSafetyFail ? "단독 고소 족장 작업 및 심야 밀폐구역 작업 투입 절대 금지" : "위험성 높은 선대 탑재 고소 족장 단독 작업은 3개월 경과 후 투입 검토"} |
-| **효과적 소통 및 작업 지시** | - 작업 개시 전 1일 1개 조선소 한국어 기술 단어 반복 교육<br>- 작업 종료 후 반장이 직접 용접 결함 및 안전 상태 확인 후 서명 승인 |
-| **리스크 통제 방안** | - 현대삼호 **안전 4대 골든룰** 위반 시 3진 아웃제 엄격 적용 안내<br>- 매일 작업 전 혈압/음주 측정 및 건강 이상자 무리한 작업 배제 |
-| **동기부여 및 근태 관리** | - 분기별 안전 무사고 달성 및 우수 근태 포상(삼호상품권 등) 추천<br>- 기숙사 귀가 후 음주 및 무단 외출 방지를 위한 생활지도 점검 |
-| **추천 멘토(사수) 매칭** | - 한국어 능통 동향 선배(E-7/E-9 선발자) 1명 + 인내심 있는 한국인 베테랑 기장 1명 듀얼 멘토 지정 |
-| **중장기 육성 로드맵** | - **1~3개월**: 기본 공정 단품 취부/용접 및 안전 골든룰 100% 체화<br>- **4~6개월**: 복합 블록 조립 및 품질 검사(RT/UT) 합격률 95% 이상 달성<br>- **1년 이후**: E-7 숙련기능공으로서 후배 입국자 현장 OJT 사수 역할 부여 |`;
 }
 
 app.post("/api/generate-ai-report", async (req, res) => {
@@ -701,52 +627,62 @@ ${sRes}
 
 위 서식에 맞춰 가독성 높고 격식 있는 공식 보고서 형식으로 작성해 주십시오.`;
 
-    let aiResponse: any = null;
+    let aiResponse;
     const modelToUse = "gemini-3.8-flash";
     
     try {
       aiResponse = await generateContentWithRetry(ai, {
         model: modelToUse,
         contents: prompt,
-      }, 2, 1000);
+      });
     } catch (primaryErr: any) {
       console.warn(`[Gemini API] Primary model ${modelToUse} failed:`, primaryErr?.message || primaryErr);
-      // Fallback 1: gemini-flash-latest
+      // Try fallback model if transient or quota error
       try {
         aiResponse = await generateContentWithRetry(ai, {
           model: "gemini-flash-latest",
           contents: prompt,
-        }, 2, 1000);
+        }, 2, 2000);
       } catch (fallbackErr: any) {
         console.warn(`[Gemini API] Fallback model gemini-flash-latest failed:`, fallbackErr?.message || fallbackErr);
-        // Fallback 2: gemini-3.1-flash-lite
         try {
           aiResponse = await generateContentWithRetry(ai, {
             model: "gemini-3.1-flash-lite",
             contents: prompt,
-          }, 2, 1000);
-        } catch (thirdErr: any) {
-          console.warn("[Gemini API] All online Gemini models failed, activating DX_PRO Expert Diagnostic Engine fallback:", thirdErr?.message || thirdErr);
-          const fallbackText = generateExpertFallbackReport(req.body);
-          return res.json({ success: true, text: fallbackText });
+          }, 2, 2000);
+        } catch (thirdErr) {
+          throw thirdErr || fallbackErr || primaryErr;
         }
       }
     }
 
-    if (aiResponse && aiResponse.text) {
-      return res.json({ success: true, text: aiResponse.text });
-    }
-
-    const fallbackText = generateExpertFallbackReport(req.body);
-    return res.json({ success: true, text: fallbackText });
+    res.json({ success: true, text: aiResponse.text });
   } catch (error: any) {
     console.error("Gemini Generation Error:", error);
-    try {
-      const fallbackText = generateExpertFallbackReport(req.body);
-      return res.json({ success: true, text: fallbackText });
-    } catch (_) {
-      res.status(500).json({ error: true, message: "AI 리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." });
+
+    const errStr = String(error?.message || error || "");
+    let userFriendlyMsg = "AI 리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
+
+    if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("Quota exceeded") || errStr.includes("quota")) {
+      userFriendlyMsg = "Google Gemini API 사용량 한도(분당 요청 초과, HTTP 429)에 도달했습니다.\n무료 티어 호출 한도(분당 5회)로 인한 일시적인 제한이므로, 약 30~40초 후 다시 [AI 심층 분석 리포트 생성] 버튼을 눌러주세요.";
+    } else if (errStr.includes("503") || errStr.includes("UNAVAILABLE") || errStr.includes("overloaded")) {
+      userFriendlyMsg = "Gemini AI 서버가 일시적으로 혼잡합니다. 10~20초 후 다시 시도해 주세요.";
+    } else if (errStr.includes("API Key") || errStr.includes("API_KEY")) {
+      userFriendlyMsg = "서버 측 Gemini API 키 설정이 올바르지 않거나 누락되었습니다.";
+    } else {
+      // Try to parse raw JSON error if present
+      try {
+        const jsonMatch = errStr.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed?.error?.message) {
+            userFriendlyMsg = `AI 서비스 응답 오류: ${parsed.error.message}`;
+          }
+        }
+      } catch (_) {}
     }
+
+    res.status(500).json({ error: true, message: userFriendlyMsg });
   }
 });
 

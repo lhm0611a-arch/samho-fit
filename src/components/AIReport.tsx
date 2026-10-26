@@ -34,25 +34,13 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
         },
         body: JSON.stringify(data),
       });
 
-      const rawText = await response.text();
-      let resJson: any = null;
-      try {
-        resJson = JSON.parse(rawText);
-      } catch {
-        // Non-JSON response (e.g., HTML proxy or gateway error)
-        console.warn("Server returned non-JSON response:", rawText.slice(0, 200));
-      }
-
-      if (!response.ok || !resJson || resJson.error) {
-        const errorDetail = resJson?.message || (response.status === 504 || response.status === 502
-          ? "서버 응답 시간 초과 또는 게이트웨이 일시 지연이 발생했습니다. 잠시 후 다시 시도해 주세요."
-          : "AI 리포트 생성 서버와의 통신 중 문제가 발생했습니다. 다시 시도해 주세요.");
-        throw new Error(errorDetail);
+      const resJson = await response.json();
+      if (!response.ok || resJson.error) {
+        throw new Error(resJson.message || "AI 리포트 생성에 실패했습니다.");
       }
 
       setAiText(resJson.text || "");
@@ -118,10 +106,10 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
   const displayDate = (data.date || "").slice(0, 10) || new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="w-full mt-6 ai-report-wrapper print:mt-0 print:pt-0 print:m-0 print:p-0 print:break-before-page">
+    <div className="w-full mt-6">
       {aiText ? (
         <div 
-          className="a4-page ai-report-page break-after-page overflow-visible bg-white flex flex-col print:m-0 print:border-none print:shadow-none print:min-h-0" 
+          className="a4-page ai-report-page break-after-page overflow-visible bg-white flex flex-col" 
           style={{ 
             width: "210mm", 
             minWidth: "210mm", 
@@ -276,7 +264,7 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
           </div>
 
           {/* Official Footer Notice */}
-          <div className="footer-notice mt-4 pt-2 border-t border-slate-200 flex justify-between items-center text-[9px] text-slate-500 font-medium shrink-0">
+          <div className="mt-4 pt-2 border-t border-slate-200 flex justify-between items-center text-[9px] text-slate-500 font-medium shrink-0">
             <span>HD HYUNDAI SAMHO DX_PRO E-7 FOREIGN TALENT ASSESSMENT SYSTEM</span>
             <span className="text-slate-400 font-bold tracking-wider">HD HYUNDAI CONFIDENTIAL • DO NOT DISTRIBUTE</span>
           </div>
