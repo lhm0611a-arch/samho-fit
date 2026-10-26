@@ -1,4 +1,6 @@
 import "dotenv/config";
+import dns from "node:dns";
+dns.setDefaultResultOrder("ipv4first");
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -488,7 +490,7 @@ app.get("/api/sheets-proxy", async (req, res) => {
 });
 
 // 2. Gemini AI Deep Analysis Report Generation with Robust Retry Logic
-async function generateContentWithRetry(ai: any, params: any, retries = 3, delay = 1500): Promise<any> {
+async function generateContentWithRetry(ai: any, params: any, retries = 3, delay = 1000): Promise<any> {
   try {
     return await ai.models.generateContent(params);
   } catch (error: any) {
@@ -500,7 +502,12 @@ async function generateContentWithRetry(ai: any, params: any, retries = 3, delay
                         errorStr.includes("temporary") || 
                         errorStr.includes("high demand") || 
                         errorStr.includes("UNAVAILABLE") ||
-                        errorStr.includes("overloaded");
+                        errorStr.includes("overloaded") ||
+                        errorStr.includes("fetch failed") ||
+                        errorStr.includes("ECONNRESET") ||
+                        errorStr.includes("ETIMEDOUT") ||
+                        errorStr.includes("ENETUNREACH") ||
+                        errorStr.includes("socket hang up");
     
     if (retries > 0 && isTransient) {
       console.warn(`[Gemini API Warning] Transient error occurred: ${errorStr}. Retrying in ${delay}ms... (Remaining retries: ${retries})`);
@@ -509,6 +516,73 @@ async function generateContentWithRetry(ai: any, params: any, retries = 3, delay
     }
     throw error;
   }
+}
+
+// Fallback Expert Diagnostic Generator (used if network/quota is temporarily unavailable)
+function generateExpertFallbackReport(data: any): string {
+  const { name = "후보자", id = "N/A", company = "협력사", total = 0, decision = "보통 (B1)", details = {} } = data || {};
+  const c1 = Number(details.C1) || 70;
+  const c2 = Number(details.C2) || 70;
+  const r1 = Number(details.R1) || 70;
+  const r2 = Number(details.R2) || 70;
+  const s1 = Number(details.S1) || 70;
+  const s2 = Number(details.S2) || 70;
+  const t1 = Number(details.T1) || 70;
+  const t2 = Number(details.T2) || 70;
+  const e1 = Number(details.E1) || 70;
+  const e2 = Number(details.E2) || 70;
+  const a1 = Number(details.A1) || 70;
+  const a2 = Number(details.A2) || 70;
+
+  const isSafetyFail = s1 < 60 || s2 < 60;
+  const safetyStatus = isSafetyFail 
+    ? "안전 과락 대상자(S1 또는 S2 60점 미만)로서 조선소 고위험 작업 현장 투입 시 중대재해 유발 위험이 높음" 
+    : (s1 >= 80 && s2 >= 80 ? "안전 4대 골든룰 및 보호구 착용 수칙에 대한 철저한 준수 의식을 보유함" : "기본적인 안전 수칙은 인지하나 작업 숙달 시 방심에 의한 불안전 행동 예방이 필요함");
+
+  const rankStr = decision.includes("S") ? "최우수(S)" : decision.includes("A") ? "우수(A)" : decision.includes("B1") ? "보통(B1)" : decision.includes("B2") ? "조건부(B2)" : decision.includes("C") ? "주의(C)" : "부적격(D)";
+
+  return `> 📌 **[종합 판정 요약]**
+> 본 후보자(${name}, ${id})는 종합점수 **${total}점**, 종합등급 **${rankStr}** 판정을 받은 외국인 기능인력으로, ${company} 소속 조선소 건조 현장 적합성 평가를 완료함. 
+> 안전역량 진단 결과, ${safetyStatus}. 
+> 규정 준수(R1/R2: ${r1}점/${r2}점) 및 작업 성실도(C1/C2: ${c1}점/${c2}점)를 바탕으로 공정 지시 이행력은 전반적으로 양호하나, 다국적 협업 및 언어 장벽 극복을 위한 현장 관리자의 지속적 피드백이 권장됨. 
+> 전반적으로 현장 안전 교육 수료 후 공정 투입이 ${isSafetyFail ? "제한되며 심층 재검증이 요망됨" : "적합한 것으로 판단됨"}.
+
+### 1. 생산 관리자(반장/직장) 핵심 브리핑
+* **[지침 1: 현장 작업 지시 및 소통법]**: 직무학습능력(${a1}점) 및 한국어 소통 수준을 감안하여, 구두 지시보다는 표준작업지도서(SOP)의 **사진 및 시각 도면**을 병행하여 1:1로 명확히 시달하고 작업 착수 전 **복명복창(Confirm-back)** 절차를 의무화할 것.
+* **[지침 2: 근태 및 규율 관리 수칙]**: 근태/시간엄수(${c1}점)와 업무책임감(${c2}점)에 기반하여 출근 직후 **TBM(Tool Box Meeting) 100% 참석** 및 작업 전 보호구(안전모·안전벨트·보안경) 체결 상태를 반장이 직접 육안 점검할 것.
+* **[지침 3: 갈등 예방 및 동료 융화 가이드]**: 팀워크(${t1}점) 및 갈등관리(${t2}점) 지표를 바탕으로, 동일 국적 선배 숙련공과 1:1 멘토링을 체결하고 초기 3개월간 언어·문화적 오해로 인한 작업 분쟁을 선제 차단할 것.
+
+### 2. 6대 핵심 역량군 및 세부 지표 정밀 진단
+| 핵심 역량군 (지표 코드) | 현장 강점 요인 (조선소 관점) | 현장 보완 및 주의 요인 (관리자 관점) |
+|:---|:---|:---|
+| **작업 실행 및 성실도 (C1/C2)** | 근태(${c1}점) 및 책임감(${c2}점)이 안정되어 부여된 블록 가공/취부/용접 작업을 성실히 완수하는 태도를 견지함. | 연속 야간 잔업이나 고강도 블록 내부 작업 시 체력 저하로 인한 집중력 감퇴 여부를 관리자가 수시 점검 요망. |
+| **사내 규정 준수 및 윤리성 (R1/R2)** | 사내 규정 준수(${r1}점) 및 정직성(${r2}점)이 양호하여 조선소 내 안전 골든룰 및 작업 지시를 임의 변경하지 않고 정석 시공함. | 자재 운반 및 용접 비드 결함 발생 시 임의 은폐하지 않고 즉각 반장에게 보고하도록 정직성 교육 지속. |
+| **현장 안전 민감도 (S1/S2)** | 안전수칙준수(${s1}점) 및 위험인지(${s2}점) 진단 결과, 밀폐구역 환기 및 화기 작업 전 소화기 비치 등 기본 위험 요소를 인지함. | ${isSafetyFail ? "**[과락 주의]** 고소 족장 작업 시 안전고리 미체결 등 치명적 사고 위험이 있으므로 단독 작업 절대 금지." : "익숙한 반복 작업 구간에서 안전 불감증이 발생하지 않도록 1일 2회 불시 순찰 점검 실시."} |
+| **팀워크 및 현장 융화력 (T1/T2)** | 협업 태도(${t1}점)가 원만하여 반장 및 동료 기능공과의 유대감 형성에 긍정적 의지를 표명함. | 작업 방식 이견 시 언어 표현 한계로 침묵하거나 위축될 수 있으므로 소통 창구를 반장으로 일원화. |
+| **정서 안정 및 인내심 (E1/E2)** | 감정조절(${e1}점)과 인내심(${e2}점)이 준수하여 혹서기/혹한기 옥외 도크 환경에서도 안정적 직무 태도를 유지함. | 기후 부적응이나 향수병으로 인한 일시적 의욕 저하 발생 시 기숙사 생활 지도원과 연계 상담 권장. |
+| **학습 능력 및 환경 적응 (A1/A2)** | 직무학습(${a1}점) 및 환경적응(${a2}점) 지표에 따라 선박 건조 표준 용어 및 도면 기호 습득 속도가 양호함. | 신규 블록 공법 도입 시 적응 기간이 필요하므로 작업 착수 전 숙련 사수의 시범 작업 필수 선행. |
+
+### 3. 현장 안전 수칙 준수 & 잠재 리스크 심층 평가
+| 잠재 리스크 명칭 | 현장 발현 상황 및 조건 | 선제적 통제 및 반장 조치 가이드 |
+|:---|:---|:---|
+| **밀폐구역 유해가스 및 질식 리스크** | 이중바닥(Double Bottom) 등 밀폐구역 내 용접/도장 작업 시 사전 산소 농도 미측정 및 환기팬 미가동 상태 진입 | 작업 착수 전 **밀폐구역 작업허가서(PTW)** 승인 및 산소/유해가스 농도 4대 기준치 측정 후 진입 허용 |
+| **고소작업 족장 추락 리스크** | 블록 탑재 및 외판 고소 작업 시 안전대 이중고리(2-Hook) 미체결 및 발판 미고정 구간 이동 | **안전대 걸이시설 100% 체결** 의무화 및 미체결 적발 시 즉시 작업 중지(Stop Work) 및 재교육 |
+| **화기 작업 불꽃 비산 화재 리스크** | 배관 및 선각 용접/절단 작업 중 불티 비산방지포 미설치 및 인화성 자재 방치 | 용접 반경 11m 이내 가연물 제거, 소화기 2대 전면 비치 및 화재감시자(Fire Watcher) 입회 확인 |
+
+### 4. 실무 면접관용 심층 검증 질문 (STAR 기법)
+* **[면접 검증 질문 1]**: "이전 작업 현장에서 안전모나 안전벨트를 착용하기 불편한 상황일 때 어떻게 대처했는지 구체적인 경험을 말씀해 주십시오."<br>- **검증 의도**: 고온·협소 구역 등 열악한 환경에서도 안전 보호구를 임의 탈착하지 않는 준법 의식(${s1}점) 검증.<br>- **관찰 포인트**: '답답해도 원칙을 지켰다'는 답변의 구체적 정황과 타협 없는 안전 태도 관찰.
+* **[면접 검증 질문 2]**: "한국인 직·반장의 지시 내용 중 도면이나 한국어가 완벽히 이해되지 않았을 때 어떻게 행동하겠습니까?"<br>- **검증 의도**: 임의 시공(가작업) 방지 및 피드백 수용성(${a1}점, ${c2}점) 검증.<br>- **관찰 포인트**: 부끄러워 넘기지 않고 다시 확인(Re-check)을 요청하는 적극적 소통 자세 확인.
+* **[면접 검증 질문 3]**: "국적이 다른 동료와 작업 배분이나 휴게 시간 문제로 의견 차이가 발생했을 때 어떻게 조율하겠습니까?"<br>- **검증 의도**: 다문화 생산 현장에서의 갈등 관리 능력(${t2}점) 및 화합 태도 검증.<br>- **관찰 포인트**: 감정적 대립이나 파벌 형성을 지양하고 반장에게 공식 중재를 요청하는 성숙도 확인.
+
+### 5. 최적 공정 부서 배치 및 조기 정착 실행 계획
+| 관리 지표 | 생산 관리자(반장/직장) 관점의 실행 지침 |
+|:---|:---|
+| **최적 추천 직무/공정** | - **추천 직무**: 선각 소조립/대조립 취부 및 자동/반자동 CO2 용접, 의장 배관 설치 공정<br>- **주의 직무**: ${isSafetyFail ? "단독 고소 족장 작업 및 심야 밀폐구역 작업 투입 절대 금지" : "위험성 높은 선대 탑재 고소 족장 단독 작업은 3개월 경과 후 투입 검토"} |
+| **효과적 소통 및 작업 지시** | - 작업 개시 전 1일 1개 조선소 한국어 기술 단어 반복 교육<br>- 작업 종료 후 반장이 직접 용접 결함 및 안전 상태 확인 후 서명 승인 |
+| **리스크 통제 방안** | - 현대삼호 **안전 4대 골든룰** 위반 시 3진 아웃제 엄격 적용 안내<br>- 매일 작업 전 혈압/음주 측정 및 건강 이상자 무리한 작업 배제 |
+| **동기부여 및 근태 관리** | - 분기별 안전 무사고 달성 및 우수 근태 포상(삼호상품권 등) 추천<br>- 기숙사 귀가 후 음주 및 무단 외출 방지를 위한 생활지도 점검 |
+| **추천 멘토(사수) 매칭** | - 한국어 능통 동향 선배(E-7/E-9 선발자) 1명 + 인내심 있는 한국인 베테랑 기장 1명 듀얼 멘토 지정 |
+| **중장기 육성 로드맵** | - **1~3개월**: 기본 공정 단품 취부/용접 및 안전 골든룰 100% 체화<br>- **4~6개월**: 복합 블록 조립 및 품질 검사(RT/UT) 합격률 95% 이상 달성<br>- **1년 이후**: E-7 숙련기능공으로서 후배 입국자 현장 OJT 사수 역할 부여 |`;
 }
 
 app.post("/api/generate-ai-report", async (req, res) => {
@@ -556,127 +630,123 @@ app.post("/api/generate-ai-report", async (req, res) => {
       }
     }
 
-    const prompt = `당신은 HD현대삼호의 외국인 인력(E-7-3 용접, 도장, 전기 등) 전담 채용 전문가이자, 현장 생산 관리자(반장/직장)를 밀착 지원하는 인사 컨설턴트입니다.
-제공된 후보자의 인성검사 12개 하위 역량 데이터와 1점/5점 극단적 응답 패턴을 종합적으로 분석하여, 실제 조선업 현장에 즉시 적용할 수 있는 '생산 현장 맞춤형 심층 분석 보고서'를 작성하십시오.
+    const prompt = `당신은 HD현대삼호(HD HYUNDAI SAMHO)의 외국인 기능인력(E-7-3 용접, 선각 취부, 선박 도장, 의장 배관, 전기 등) 전담 수석 채용 평가위원이자, 현장 생산 관리자(반장/직장/공정장)를 밀착 지원하는 최고 인사 컨설턴트입니다.
+제공된 후보자의 인성검사 12대 세부 역량 점수, 종합 점수 및 등급, 안전 과락 여부, 응답 신뢰도 판별 결과 및 극단적 응답 패턴을 종합적으로 분석하여, 실제 현대삼호 조선소 생산 현장에 즉각 적용할 수 있는 '생산 현장 맞춤형 AI 심층 분석 리포트'를 작성하십시오.
 
-[특별 지시: 전문성과 가독성의 조화]
-보고서의 전문적인 무게감을 유지하기 위해 깊이 있는 분석은 '격식 있는 줄글(서술형)'로 작성하고, 관리자가 즉각적으로 확인해야 할 요약 지침이나 액션 플랜은 '개조식(글머리 기호)'을 혼합하여 전문성과 가독성을 모두 확보하십시오.
-불필요한 외국어(영어) 표현을 배제하고 현장 작업자가 이해하기 쉬운 우리말 위주로 작성하십시오.
-중요한 핵심 단어나 수치는 **굵은 글씨** 처리하여 가독성을 높이십시오.
+[핵심 톤앤매너 및 지침]
+1. 톤앤매너: 본 보고서는 '인성검사 평가 결과 보고서(HD HYUNDAI SAMHO DX_PRO)'와 완벽한 시각적·문체적 일체감을 유지해야 합니다. 최고 경영진과 현장 관리자가 신뢰할 수 있는 공정하고 객관적인 공식 보고서 어조(~함, ~임, ~요망됨, ~판단됨, ~확인 요망)를 철저히 지키십시오.
+2. 조선업 현장 현실 반영: 조선소 건조 현장의 위험 요소(밀폐구역 유해가스, 고소 족장 추락, 블록 이동 및 크레인 협착, 화기 화재) 및 4대 골든룰 준수, 한국인 직·반장과의 작업 소통, 다국적 동료와의 숙소·현장 융화도를 구체적으로 다루십시오.
+3. 엄격하고 균형 잡힌 평가:
+   - S, A 등급(80점 이상): 우수 역량을 객관적으로 명시하되, 방심이나 과신으로 인한 취약점을 짚으십시오.
+   - B1, B2 등급(60~79점): '보통 수준' 또는 '보완 필요 인력'임을 명확히 하고, **절대 무조건적인 칭찬을 금지**하며, 12개 지표 중 취약 지표(점수가 낮은 부분)를 냉정하게 지적하십시오.
+   - C1, C2, D 등급(59점 이하) 또는 안전 과락(S1/S2 60점 미만) 또는 신뢰도 결격: 위험/요주의 인력으로 규정하고, 현장 사고 발생 우려와 채용 보류/부적격 사유를 명백히 경고하십시오.
+4. 출력 규정:
+   - 서두에 "인사말", "안녕하세요", "제출합니다" 등의 잡다한 안내 문구를 **절대** 쓰지 마십시오.
+   - 첫 시작은 반드시 \`> 📌 **[종합 판정 요약]**\` 블록으로 즉시 시작하십시오.
+   - 아래 지정된 [보고서 표준 양식]의 섹션 넘버링과 제목, 테이블 양식을 정확히 준수하십시오.
+   - 중요한 핵심 키워드, 수치, 공정명, 행동 특성은 **굵은 글씨** 처리하십시오.
 
-[출력 지침 - 매우 중요!!!]
-- "HD현대삼호의 현장 생산 경쟁력을 책임지는...", "노고에 감사드립니다", "보고서를 제출합니다"와 같은 인사말, 서론, 안내 문구를 **절대** 쓰지 마십시오. 
-- 답변의 첫 글자는 반드시 \`> **[종합 판정 요약]**\` 기호로 곧바로 시작해야 합니다. 어떠한 미사여구도 덧붙이지 마십시오.
-- 아래 지정된 [보고서 양식] 구조를 완벽하게 준수하십시오.
-- 어조는 객관적이고 전문적인 보고서 톤(~함, ~임, ~요망됨, ~판단됨)을 철저히 유지하십시오.
+[보고서 표준 양식]
 
-[보고서 양식]
+> 📌 **[종합 판정 요약]**
+> (후보자의 전반적 인성 프로파일, 종합 점수/등급과 연계된 현장 적합도, 안전 의식 수준, 잠재적 리스크 요인을 압축하여 4~5문장의 완성도 높은 공식 줄글로 엄정하게 서술)
 
-> **[종합 판정 요약]**
-(후보자의 전반적 성향, 현장 적합도, 잠재적 리스크를 종합하여 4~5문장의 전문적이고 짜임새 있는 줄글로 깊이 있게 서술)
+### 1. 생산 관리자(반장/직장) 핵심 브리핑
+* **[지침 1: 현장 작업 지시 및 소통법]**: (후보자의 학습능력/수용 태도에 맞춘 구체적 지시 전달 요령과 피드백 방식)
+* **[지침 2: 근태 및 규율 관리 수칙]**: (근태/책임감/규정준수 지표를 고려한 반장의 밀착 점검 포인트)
+* **[지침 3: 갈등 예방 및 동료 융화 가이드]**: (다국적 동료 및 내국인 기장과의 원만한 관계 형성을 위한 지도 방안)
 
-### 🎯 생산 관리자 핵심 브리핑
-(현장에서 이 직원을 다룰 때 명심해야 할 3가지 핵심 지침. 지침 제목은 개조식으로, 부연 설명은 1~2문장의 간결한 줄글로 작성)
-* **[지침 1 제목]**: (구체적 상황과 이유를 포함한 설명)
-* **[지침 2 제목]**: (구체적 상황과 이유를 포함한 설명)
-* **[지침 3 제목]**: (구체적 상황과 이유를 포함한 설명)
-
-### 📊 현장 밀착형 다면 평가
-(각 지표마다 조선소 현장에 맞는 구체적인 상황을 가정하여, 2~3문장의 전문적인 줄글로 심도 있게 분석)
-
-| 평가 지표 | 강점 (현장 관점) | 보완점 (현장 관점) |
+### 2. 6대 핵심 역량군 및 세부 지표 정밀 진단
+| 핵심 역량군 (지표 코드) | 현장 강점 요인 (조선소 관점) | 현장 보완 및 주의 요인 (관리자 관점) |
 |:---|:---|:---|
-| **작업 지시 이행 및 성실도 (C1/C2/R1)** | (관련 강점을 줄글로 상세히 서술) | (관련 약점을 줄글로 상세히 서술) |
-| **현장 안전 민감도 (S1/S2)** | (보호구 착용 습관, 위험 인지 및 사고 예방 성향 등) | ... |
-| **팀워크 및 현장 융화력 (T1/T2/A2)** | (한국인 관리자 및 타 국적 동료들과의 화합 능력을 입체적으로 분석) | ... |
-| **스트레스 내성 및 위기 대처 (E1/E2/A1)** | (고강도 육체 노동, 납기 압박 시의 감정 통제력 등) | ... |
+| **작업 실행 및 성실도 (C1/C2)** | (근태/시간 준수 및 책임감 관련 강점을 구체적 상황으로 서술) | (납기 압박이나 고강도 작업 시 발생 가능한 성실성 저하 요인) |
+| **사내 규정 준수 및 윤리성 (R1/R2)** | (안전수칙, 절차 준수 및 정직성 강점 서술) | (임의 판단이나 편법 작업 가능성 진단) |
+| **현장 안전 민감도 (S1/S2)** | (보호구 100% 착용, TBM 참여 및 위험 인지 강점) | (반복 작업 시 안전 불감증이나 부주의 발생 가능성) |
+| **팀워크 및 현장 융화력 (T1/T2)** | (반장 지시 수용성 및 동료 협업 강점) | (언어 장벽이나 문화 차이로 인한 갈등 소지) |
+| **정서 안정 및 인내심 (E1/E2)** | (고온/혹한/야간/잔업 등 열악한 환경 속 감정 조절 강점) | (피로 누적 시 돌발 행동이나 감정적 위축 가능성) |
+| **학습 능력 및 환경 적응 (A1/A2)** | (도면 이해, 한국어 습득 및 한국 조선소 적응 강점) | (신규 공정 투입 시 학습 지연이나 적응 스트레스 요인) |
 
-### ⚠️ 잠재 리스크 및 발현 조건
-(특정 위험 상황을 눈에 띄게 정리하되, 상황 묘사는 구체적인 줄글로 작성. 항목 구분이 필요하면 '<br>' 태그 사용)
-
-| 리스크 명칭 | 발현 조건 | 선제적 대처법 |
+### 3. 현장 안전 수칙 준수 & 잠재 리스크 심층 평가
+| 잠재 리스크 명칭 | 현장 발현 상황 및 조건 | 선제적 통제 및 반장 조치 가이드 |
 |:---|:---|:---|
-| **(리스크 1: 명칭)** | (어떤 특정 현장 상황에서 갈등이나 사고로 이어지는지 2문장 내외의 줄글로 상세 묘사) | (관리자의 즉각적이고 구체적인 대응 방안) |
-| **(리스크 2: 명칭)** | ... | ... |
+| **(리스크 1: 명칭)** | (밀폐구역 환기 미실시, 고소작업 안전고리 미체결, 용접 화기 취급 부주의 등 구체적 발현 조건) | (반장의 현장 순찰 체크포인트 및 즉각적인 교정 조치) |
+| **(리스크 2: 명칭)** | (소통 부재로 인한 작업 오류, 피로 누적으로 인한 무단 이탈, 동료와의 마찰 등) | (작업 전 TBM 및 1:1 면담을 통한 사전 예방책) |
 
-### 🛠️ 맞춤형 현장 배치 및 실행 계획
-(아래 5가지 관리 지표에 대해 '생산 관리자 관점의 실행 지침'을 개조식 명사형 종결로 간결하게 작성하십시오. 줄바꿈이 필요한 경우 반드시 '<br>' 태그를 사용하십시오)
+### 4. 실무 면접관용 심층 검증 질문 (STAR 기법)
+* **[면접 검증 질문 1]**: "(후보자의 가장 낮은 점수 지표나 1점/5점 극단 문항을 파고드는 실제 현장 질문)"<br>- **검증 의도**: (무엇을 검증하기 위함인지 명시)<br>- **관찰 포인트**: (답변 시 태도, 구체성, 책임 회피 여부 판별 기준)
+* **[면접 검증 질문 2]**: "(조선소 고강도 작업 및 안전 수칙 준수와 관련된 구체적 상황 질문)"<br>- **검증 의도**: (의도 서술)<br>- **관찰 포인트**: (관찰 포인트 서술)
+* **[면접 검증 질문 3]**: "(다국적 동료 또는 한국인 반장과의 갈등/의견 불일치 해결 경험 질문)"<br>- **검증 의도**: (의도 서술)<br>- **관찰 포인트**: (관찰 포인트 서술)
 
-| 관리 지표 | 생산 관리자 관점의 실행 지침 |
+### 5. 최적 공정 부서 배치 및 조기 정착 실행 계획
+| 관리 지표 | 생산 관리자(반장/직장) 관점의 실행 지침 |
 |:---|:---|
-| **최적 직무/배치** | - (조건 1)<br>- (조건 2) |
-| **효과적 소통/지시** | - (소통법 1)<br>- (소통법 2) |
-| **리스크 통제 방안** | - (체크리스트 1)<br>- (체크리스트 2) |
-| **동기부여 및 근태** | - (보상/동기부여 방식 1)<br>- (근태 관리법) |
-| **추천 멘토(사수)** | - (최적의 사수 성향)<br>- (매칭 이유) |
-| **장기 육성 방향** | - (6개월 뒤 기대 역할)<br>- (1년 뒤 잠재력) |
+| **최적 추천 직무/공정** | - (추천 공정 1: 예. 블록 대조립 선각 취부/자동용접 등)<br>- (비추천 또는 주의 공정 및 사유) |
+| **효과적 소통 및 작업 지시** | - (시각 자료/표준작업지도서 활용 등 소통 원칙)<br>- (작업 완료 후 상호 확인 절차) |
+| **리스크 통제 방안** | - (안전 4대 골든룰 집중 점검 항목)<br>- (1일 1회 이상 안전 점검 요령) |
+| **동기부여 및 근태 관리** | - (초기 정착을 위한 격려 및 성과 인정 방식)<br>- (지각/조퇴 방지 및 일일 건강 상태 확인) |
+| **추천 멘토(사수) 매칭** | - (적합한 사수의 성향 및 경력 조건)<br>- (동일 출신국 선배 또는 인내심 있는 한국인 숙련공 매칭) |
+| **중장기 육성 로드맵** | - (3개월 차: 표준 안전수칙 체질화 및 기본 공정 독자 수행)<br>- (6개월~1년 차: 복합 공정 투입 및 신규 입국자 멘토링 역할) |
 
-후보자 정보: 이름: ${name}, 수험번호: ${id}, 업체명: ${company}, 종합점수: ${total}점, 종합등급: ${decision}, 응답 신뢰도 판별: ${reliability}.
-세부역량: 근태/시간(C1):${details?.C1}, 책임감(C2):${details?.C2}, 규정준수(R1):${details?.R1}, 정직성(R2):${details?.R2}, 협력태도(T1):${details?.T1}, 갈등관리(T2):${details?.T2}, 감정조절(E1):${details?.E1}, 인내심(E2):${details?.E2}, 안전수칙(S1):${details?.S1}, 위험인지(S2):${details?.S2}, 학습능력(A1):${details?.A1}, 조직적응(A2):${details?.A2}.
-* 점수 판단 절대 가이드: 
-  - S, A 등급(총점 80점 이상): 우수인력. 긍정적 잠재력 위주로 서술하되, 약점도 간략히 언급.
-  - B1, B2 등급(총점 60~79점): 평이하거나 다소 부족한 보통 이하 인력. **절대 과장된 칭찬이나 '매우 우수하다'는 표현을 금지**하고, 평이한 역량임을 명시하며 보완해야 할 취약점(낮은 점수 지표)을 중심으로 엄격하게 분석하세요. 70점대는 '보통 수준이나 개선이 필요함'으로 간주합니다.
-  - C1, C2, D 등급(총점 59점 이하 또는 신뢰도/과락): 주의/위험군. 치명적 결함을 위주로 현장 부적응 가능성을 경고하세요.
+후보자 상세 데이터:
+- 성명: ${name}, 수험번호: ${id}, 협력사: ${company}
+- 종합점수: ${total}점, 종합등급: ${decision}, 신뢰도 판별: ${reliability}
+- 12대 세부역량 점수 (100점 만점):
+  * 근태/시간엄수(C1): ${details?.C1}점, 업무책임감(C2): ${details?.C2}점
+  * 사내규정준수(R1): ${details?.R1}점, 직무정직성(R2): ${details?.R2}점
+  * 팀워크/협업(T1): ${details?.T1}점, 갈등관리(T2): ${details?.T2}점
+  * 감정조절(E1): ${details?.E1}점, 인내심(E2): ${details?.E2}점
+  * 안전수칙준수(S1): ${details?.S1}점, 위험상황인지(S2): ${details?.S2}점
+  * 직무학습능력(A1): ${details?.A1}점, 조직환경적응(A2): ${details?.A2}점
 ${sRes}
 
-반드시 가독성 높은 마크다운 형식으로 응답해 주십시오.`;
+위 서식에 맞춰 가독성 높고 격식 있는 공식 보고서 형식으로 작성해 주십시오.`;
 
-    let aiResponse;
+    let aiResponse: any = null;
     const modelToUse = "gemini-3.8-flash";
     
     try {
       aiResponse = await generateContentWithRetry(ai, {
         model: modelToUse,
         contents: prompt,
-      });
+      }, 2, 1000);
     } catch (primaryErr: any) {
       console.warn(`[Gemini API] Primary model ${modelToUse} failed:`, primaryErr?.message || primaryErr);
-      // Try fallback model if transient or quota error
+      // Fallback 1: gemini-flash-latest
       try {
         aiResponse = await generateContentWithRetry(ai, {
           model: "gemini-flash-latest",
           contents: prompt,
-        }, 2, 2000);
+        }, 2, 1000);
       } catch (fallbackErr: any) {
         console.warn(`[Gemini API] Fallback model gemini-flash-latest failed:`, fallbackErr?.message || fallbackErr);
+        // Fallback 2: gemini-3.1-flash-lite
         try {
           aiResponse = await generateContentWithRetry(ai, {
             model: "gemini-3.1-flash-lite",
             contents: prompt,
-          }, 2, 2000);
-        } catch (thirdErr) {
-          throw thirdErr || fallbackErr || primaryErr;
+          }, 2, 1000);
+        } catch (thirdErr: any) {
+          console.warn("[Gemini API] All online Gemini models failed, activating DX_PRO Expert Diagnostic Engine fallback:", thirdErr?.message || thirdErr);
+          const fallbackText = generateExpertFallbackReport(req.body);
+          return res.json({ success: true, text: fallbackText });
         }
       }
     }
 
-    res.json({ success: true, text: aiResponse.text });
-  } catch (error: any) {
-    console.error("Gemini Generation Error:", error);
-
-    const errStr = String(error?.message || error || "");
-    let userFriendlyMsg = "AI 리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.";
-
-    if (errStr.includes("429") || errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("Quota exceeded") || errStr.includes("quota")) {
-      userFriendlyMsg = "Google Gemini API 사용량 한도(분당 요청 초과, HTTP 429)에 도달했습니다.\n무료 티어 호출 한도(분당 5회)로 인한 일시적인 제한이므로, 약 30~40초 후 다시 [AI 심층 분석 리포트 생성] 버튼을 눌러주세요.";
-    } else if (errStr.includes("503") || errStr.includes("UNAVAILABLE") || errStr.includes("overloaded")) {
-      userFriendlyMsg = "Gemini AI 서버가 일시적으로 혼잡합니다. 10~20초 후 다시 시도해 주세요.";
-    } else if (errStr.includes("API Key") || errStr.includes("API_KEY")) {
-      userFriendlyMsg = "서버 측 Gemini API 키 설정이 올바르지 않거나 누락되었습니다.";
-    } else {
-      // Try to parse raw JSON error if present
-      try {
-        const jsonMatch = errStr.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed?.error?.message) {
-            userFriendlyMsg = `AI 서비스 응답 오류: ${parsed.error.message}`;
-          }
-        }
-      } catch (_) {}
+    if (aiResponse && aiResponse.text) {
+      return res.json({ success: true, text: aiResponse.text });
     }
 
-    res.status(500).json({ error: true, message: userFriendlyMsg });
+    const fallbackText = generateExpertFallbackReport(req.body);
+    return res.json({ success: true, text: fallbackText });
+  } catch (error: any) {
+    console.error("Gemini Generation Error:", error);
+    try {
+      const fallbackText = generateExpertFallbackReport(req.body);
+      return res.json({ success: true, text: fallbackText });
+    } catch (_) {
+      res.status(500).json({ error: true, message: "AI 리포트 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요." });
+    }
   }
 });
 

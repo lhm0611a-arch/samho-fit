@@ -404,78 +404,102 @@ html, body {
 .grade-C { background-color: #f59e0b; }
 .grade-D { background-color: #ef4444; }
 
-/* Markdown Styling for Report Page */
+/* Markdown Styling for AI Report Page (Harmonized with 1-Page Assessment Report) */
 .ai-markdown {
-  font-size: 0.95rem;
-  line-height: 1.75;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  font-size: 11.5px;
+  line-height: 1.65;
   color: #334155;
   text-align: justify;
   word-break: keep-all;
 }
 
 .ai-markdown h2 {
-  font-size: 1.5rem;
+  font-size: 14px;
   font-weight: 900;
-  color: #0f172a;
-  margin-top: 1.5rem;
-  margin-bottom: 1.25rem;
+  color: #002c5f;
+  margin-top: 16px;
+  margin-bottom: 8px;
   border-bottom: 1.5px solid #cbd5e1;
-  padding-bottom: 8px;
+  padding-bottom: 4px;
   page-break-after: avoid;
   break-after: avoid;
 }
 
 .ai-markdown h3 {
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-size: 12.5px;
+  font-weight: 900;
   color: #002c5f;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
+  margin-top: 14px;
+  margin-bottom: 6px;
   position: relative;
   page-break-after: avoid;
   break-after: avoid;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .ai-markdown h3::before {
-  content: '▶';
-  margin-right: 6px;
-  color: #3b82f6;
-  font-size: 0.8rem;
+  content: '■';
+  color: #002c5f;
+  font-size: 8px;
 }
 
 .ai-markdown blockquote {
-  border-left: 4px solid #3b82f6;
-  background: #f1f5f9;
-  padding: 1rem 1.5rem;
-  border-radius: 0 8px 8px 0;
-  margin-bottom: 1.5rem;
-  font-weight: 600;
+  border-left: 3.5px solid #002c5f;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 14px;
+  border-radius: 0 6px 6px 0;
+  margin-top: 4px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  font-size: 11.5px;
+  line-height: 1.65;
   color: #1e293b;
   page-break-inside: avoid;
   break-inside: avoid;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.ai-markdown blockquote p {
+  margin: 0;
 }
 
 .ai-markdown ul {
-  margin-top: 0.5rem;
-  margin-bottom: 1.5rem;
-  padding-left: 1.5rem;
+  margin-top: 4px;
+  margin-bottom: 10px;
+  padding-left: 16px;
   list-style-type: disc;
 }
 
 .ai-markdown li {
-  margin-bottom: 0.5rem;
+  margin-bottom: 4px;
+  font-size: 11.5px;
+  line-height: 1.6;
   page-break-inside: avoid;
   break-inside: avoid;
+}
+
+.ai-markdown strong {
+  font-weight: 800;
+  color: #0f172a;
 }
 
 .ai-markdown table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  margin-top: 6px;
+  margin-bottom: 12px;
+  font-size: 10.5px;
   page-break-inside: auto;
   break-inside: auto;
+  border: 1px solid #cbd5e1;
 }
 
 .ai-markdown tr {
@@ -484,21 +508,25 @@ html, body {
 }
 
 .ai-markdown th {
-  background-color: #e2e8f0;
-  padding: 12px;
+  background-color: #f1f5f9;
+  padding: 6px 8px;
   font-weight: 800;
-  color: #0f172a;
+  color: #1e293b;
   border: 1px solid #cbd5e1;
   text-align: center !important;
+  font-size: 10px;
+  line-height: 1.35;
 }
 
 .ai-markdown td {
-  padding: 12px;
-  border: 1px solid #cbd5e1;
+  padding: 6px 8px;
+  border: 1px solid #e2e8f0;
   background-color: #ffffff;
   color: #334155;
   text-align: left;
   vertical-align: middle;
+  font-size: 10.5px;
+  line-height: 1.45;
 }
 
 .ai-markdown td:first-child {
@@ -506,7 +534,8 @@ html, body {
   background-color: #f8fafc;
   text-align: center !important;
   word-break: keep-all;
-  min-width: 130px;
+  min-width: 120px;
+  color: #0f172a;
 }
 
 .ai-markdown td:first-child strong {
@@ -519,11 +548,11 @@ html, body {
 }
 
 .ai-markdown th:nth-child(2) {
-  width: 225px;
+  width: 230px;
 }
 
 .ai-markdown table:nth-of-type(3) th:nth-child(2) {
-  width: 378px;
+  width: 380px;
 }
 
 #print-table-view {
@@ -803,7 +832,7 @@ html, body {
     page-break-inside: auto !important;
     page-break-after: auto !important;
     margin: 0 !important;
-    padding: 0 20mm !important;
+    padding: 19mm 14mm 12mm 14mm !important;
   }
   
   .total-report-flowing-page {
