@@ -118,10 +118,10 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
   const displayDate = (data.date || "").slice(0, 10) || new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="w-full mt-6">
+    <div className="w-full mt-6 ai-report-wrapper print:mt-0 print:pt-0 print:m-0 print:p-0 print:break-before-page">
       {aiText ? (
         <div 
-          className="a4-page ai-report-page break-after-page overflow-visible bg-white flex flex-col" 
+          className="a4-page ai-report-page break-after-page overflow-visible bg-white flex flex-col print:m-0 print:border-none print:shadow-none print:min-h-0" 
           style={{ 
             width: "210mm", 
             minWidth: "210mm", 
@@ -276,7 +276,7 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
           </div>
 
           {/* Official Footer Notice */}
-          <div className="mt-4 pt-2 border-t border-slate-200 flex justify-between items-center text-[9px] text-slate-500 font-medium shrink-0">
+          <div className="footer-notice mt-4 pt-2 border-t border-slate-200 flex justify-between items-center text-[9px] text-slate-500 font-medium shrink-0">
             <span>HD HYUNDAI SAMHO DX_PRO E-7 FOREIGN TALENT ASSESSMENT SYSTEM</span>
             <span className="text-slate-400 font-bold tracking-wider">HD HYUNDAI CONFIDENTIAL • DO NOT DISTRIBUTE</span>
           </div>
