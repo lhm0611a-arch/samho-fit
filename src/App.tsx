@@ -2881,9 +2881,14 @@ export default function App() {
                   <div className="flex-1 flex flex-col justify-between border-x border-b border-slate-200 rounded-b divide-y divide-slate-100 bg-white">
                     {[
                       "C1", "C2", "R1", "R2", "S1", "S2", "T1", "T2", "E1", "E2", "A1", "A2"
-                    ].map((k) => {
+                    ].map((k, idx) => {
                       const s = viewingResult.details[k] ?? 0;
-                      const descriptor = getBehavioralDescriptor(k, s);
+                      const candidateSeed =
+                        (viewingResult.id || "").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) +
+                        (viewingResult.name || "").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0) +
+                        (viewingResult.total || 0) +
+                        idx * 7;
+                      const descriptor = getBehavioralDescriptor(k, s, candidateSeed);
                       const isCritical = k === "S1" || k === "S2" || k === "R1";
                       const isSafetyFail = (k === "S1" || k === "S2") && s < 60;
 

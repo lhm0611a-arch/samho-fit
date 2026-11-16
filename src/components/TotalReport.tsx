@@ -485,7 +485,13 @@ export const TotalReport: React.FC<TotalReportProps> = ({ data, onClose }) => {
           <p className="text-xs text-slate-400">상단의 업체 또는 기간 필터를 변경해 보세요.</p>
         </div>
       ) : (
-        <div id="view-total-report" className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center">
+        <div 
+          id="view-total-report" 
+          className="min-w-[210mm] w-[210mm] mx-auto bg-slate-50 relative flex flex-col items-center"
+          style={{
+            fontFamily: "'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif"
+          }}
+        >
           
           {/* ========================================================================= */}
           {/* PAGE 1: 공식 표지 (EXECUTIVE COVER PAGE)                                  */}

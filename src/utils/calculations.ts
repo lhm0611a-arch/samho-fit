@@ -594,82 +594,610 @@ export interface BehavioralDescriptor {
   isCrit: boolean;
 }
 
-export function getBehavioralDescriptor(key: string, score: number): BehavioralDescriptor {
-  const isHigh = score >= 80;
-  const isLow = score < 60;
+export function getBehavioralDescriptor(key: string, score: number, seed = 0): BehavioralDescriptor {
+  const pick = (arr: string[]) => arr[Math.abs(seed + score + key.charCodeAt(0) + (key.charCodeAt(1) || 0)) % arr.length];
 
+  // 7개 세분화 점수 구간 (95+, 90~94, 85~89, 80~84, 70~79, 60~69, 60미만) + 후보자별 다변화 소견
   switch (key) {
-    case "C1":
-      if (score >= 90) return { desc: "작업 준비 철저 및 출결 완벽, 지각·이탈 없는 최상위 근면성", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "출퇴근 시간 엄수 및 업무 준비 성실, 안정적인 근태 유지", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "통상적인 작업 일과 준수, 환경 변화에 따른 집중도 편차 관리 요망", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "지각 및 자리비움 등 근태 불안정 우려, 작업 시간 준수 밀착 지도 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "C1": // 근태/시간
+      if (score >= 95) return {
+        desc: pick([
+          "작업 시작 전 공구·장비 사전 점검 및 출결 무결점, 최상위 근면성 보유",
+          "일과 시간 철저 엄수 및 작업 준비 완료 상태로 지각·자리이탈 전무함",
+          "정해진 공정 시간표를 완벽히 준수하며 솔선수범하는 모범적 출결 태도"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "작업 준비 철저 및 출결 완벽, 지각·조퇴 없는 높은 시간 관리 역량",
+          "아침 TBM 및 조회 시간 엄수, 일과 중 작업 집중도와 시간 활용 탁월",
+          "규칙적인 생활 습관으로 일일 공정 일정을 차질 없이 소화하는 성실함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "출퇴근 시간 엄수 및 업무 준비 성실, 안정적인 일일 근태 리듬 유지",
+          "휴게 시간과 작업 시간을 명확히 구분하며 성실한 출결 태도를 보임",
+          "일정 관리 의식이 양호하여 공정 투입 시간 및 마감 기한을 잘 지킴"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "통상적인 작업 일과 준수 양호, 잔업·특근 시 컨디션 및 집중도 관리 권장",
+          "기본 출결 규정은 무난히 이행하나 연속 작업 시 시간 배분 점검 필요",
+          "표준 작업 시간은 준수하나 교대 및 기상 악화 시 출결 리듬 확인 요망"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "기본 근태 기준선은 충족하나 휴게 시간 후 복귀 지연 방지 지도 권장",
+          "환경 변화에 따라 작업 준비가 늦어질 수 있어 일일 조회 시 점검 요망",
+          "출결 의식이 다소 느슨해질 소지가 있어 반장의 정기적 시간 환기 필요"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "지각·무단이탈 등 근태 불안정 우려, 출퇴근 및 작업 시간 밀착 감독 필수",
+          "작업 준비 지연 및 일과 중 자리비움 소지, 엄격한 출결 체크리스트 적용",
+          "시간 엄수 의식 미흡으로 공정 차질 우려, 초기 근태 규율 집중 교육 요망"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "C2":
-      if (score >= 90) return { desc: "맡은 공정 끝까지 완수, 높은 사명감과 철저한 품질 기준 준수", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "자신이 맡은 구역 책임 완수, 작업 후 재확인 습관 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "부여된 기본 과업 수행 양호, 마감 및 마무리에 대한 지속적 확인 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "난공정 직면 시 마무리 미흡 가능성, 공정 단계별 철저한 검수 체계 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "C2": // 업무책임감
+      if (score >= 95) return {
+        desc: pick([
+          "부여된 블록·공정을 끝까지 완수하며 품질 결함 제로를 추구하는 장인정신",
+          "어려운 난공정도 회피 없이 책임 완수하고 자주 검사까지 철저히 이행함",
+          "높은 직무 사명감으로 할당량 이상을 정확히 마무리하는 핵심 신뢰 인력"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "맡은 공정 끝까지 완수, 높은 사명감과 철저한 작업 품질 기준 준수",
+          "본인 담당 구역의 용접·취부·도장 마감 상태를 스스로 재점검하는 책임감",
+          "작업 완결성이 매우 뛰어나며 후속 공정에 피해가 없도록 깔끔히 처리함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "자신이 맡은 구역 책임 완수, 작업 완료 후 정리정돈 및 재확인 습관 우수",
+          "주어진 일일 작업량을 성실히 완수하며 품질 기준을 지키려는 태도 양호",
+          "업무 회피 없이 본인의 역할을 꾸준히 수행하여 반장의 신뢰도가 높음"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "부여된 기본 과업 수행 무난, 작업 종료 전 최종 마감 상태 확인 권장",
+          "통상적인 공정 책임감은 양호하나 까다로운 구간 작업 시 중간 점검 필요",
+          "지시받은 범위 내 업무는 수행하나 자발적 마무리 정리는 독려가 요망됨"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "단순 반복 작업은 소화하나 피로 누적 시 마무리 품질 저하 방지 지도 필요",
+          "과업 완수 의지가 다소 수동적이므로 명확한 일일 목표량 부여 및 확인 권장",
+          "책임 소재가 모호할 때 소극적일 수 있어 개인별 담당 구역 지정이 효과적"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "난공정 직면 시 업무 회피·마무리 미흡 우려, 단계별 철저한 검수 체계 필수",
+          "과업 완수 책임감 저조로 재작업 발생 소지, 반장의 수시 결과물 확인 요망",
+          "작업 뒷정리 및 품질 마감 소홀 가능성, 명확한 작업 지시와 완료 점검 필요"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "R1":
-      if (score >= 90) return { desc: "사내 표준 매뉴얼 및 관리자 지시 철저 준수, 임의 공정 변경 배제", tag: "모범", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "작업 표준 및 규정 준수 태도 우수, 정해진 작업 지침 성실 이행", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "표준 매뉴얼 준수 보통, 숙련도 상승에 따른 임의 작업 방지 주의", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[규정위반 우려] 작업 지시 불응 및 임의 작업 가능성, 공정 규율 엄격 통제", tag: "위험", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true };
+    case "R1": // 규정준수
+      if (score >= 95) return {
+        desc: pick([
+          "작업표준서(WPS) 및 사내 규정 100% 준수, 임의 변경 없는 원칙주의 태도",
+          "현장 통제선·작업 허가 절차를 엄격히 지키며 타 작업자의 모범이 됨",
+          "관리자 지시와 표준 작업 공정을 한 치의 오차 없이 이행하는 준법 정신"
+        ]),
+        tag: "모범", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "사내 표준 매뉴얼 및 관리자 지시 철저 준수, 임의 공정 변경 일절 배제",
+          "정해진 작업 절차와 기숙사·사내 생활 규율을 흔들림 없이 성실히 준수함",
+          "편법을 쓰지 않고 표준 공법을 고수하여 공정 안정성을 높이는 모범 인력"
+        ]),
+        tag: "모범", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "작업 표준 및 사내 규정 준수 태도 우수, 정해진 작업 지침 성실히 이행",
+          "반장의 작업 지시권을 존중하며 현장 질서와 절차를 안정적으로 따름",
+          "사내 보안·출입·작업 규정을 잘 숙지하고 일탈 없이 준수하는 양호한 태도"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "표준 매뉴얼 준수 보통, 작업 숙련 후 본인 임의 방식 작업 방지 지도 권장",
+          "기본 사내 규율은 따르나 바쁜 공정 상황에서 절차 생략 없도록 환기 필요",
+          "대체로 지시에 순응하나 세부 작업 표준서 기준을 반복 교육하면 효과적"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "통상적 규율은 준수하나 감독자 부재 시 편의 위주 작업 습관 경계 요망",
+          "자국 작업 관행을 고집할 소지가 있어 현대삼호 표준 공법 사전 교육 필수",
+          "규정 인식은 있으나 실천력이 다소 느슨할 수 있어 주기적 규율 점검 권장"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[규정위반 우려] 작업 지시 불응 및 임의 편법 작업 가능성, 엄격 통제 필수",
+          "[규율일탈 주의] 표준 절차 무시 및 독단적 행동 우려, 현장 규율 집중 감독",
+          "[지시불이행 경계] 사내 규정 경시 성향 감지, 위반 시 즉각 교정 조치 요망"
+        ]),
+        tag: "위험", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true
+      };
 
-    case "R2":
-      if (score >= 90) return { desc: "하자나 과실 발생 시 즉시 자진 보고, 투명하고 정직한 업무 태도", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "작업 과정의 문제점 솔직 보고, 신뢰할 수 있는 작업 기록 유지", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "통상적인 업무 정직성 유지, 경미한 오류 발생 시 신속 보고 습관 유도", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[은폐 주의] 실수나 불량 발생 시 은폐 소지, 주기적인 중간 공정 검수 필수", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "R2": // 정직성
+      if (score >= 95) return {
+        desc: pick([
+          "작업 오류·자재 손망실 발생 시 즉시 자진 보고하는 최고 수준의 투명성",
+          "거짓 변명 없이 작업 현황과 문제점을 있는 그대로 공유하는 높은 도덕성",
+          "공구·자재 관리 및 작업 일지 기록에 있어 한 점 의혹 없는 정직한 태도"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "하자나 과실 발생 시 은폐 없이 즉시 보고, 투명하고 정직한 직무 태도",
+          "본인의 실수를 솔직히 인정하고 신속히 수정 지시를 구하는 신뢰성 보유",
+          "표리부동함 없이 일관되고 진실한 태도로 관리자와 동료의 신임이 두터움"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "작업 과정의 문제점 솔직 보고, 신뢰할 수 있는 작업 태도 및 정직성 유지",
+          "자재·공구 사용 및 작업 진척도 보고가 투명하여 현장 관리가 수월함",
+          "과실 책임을 타인에게 전가하지 않고 정직하게 소명하는 건전한 직업윤리"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "통상적인 직무 정직성 양호, 경미한 작업 오류도 즉시 보고토록 독려 권장",
+          "전반적으로 솔직하나 질책에 대한 두려움으로 보고가 늦어지지 않게 배려",
+          "기본 도덕성은 무난하며, 불량 발생 시 처벌보다 개선 중심 소통이 효과적"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "불리한 상황에서 방어적 변명 소지, 작업 결과를 눈으로 직접 확인 권장",
+          "작업 미숙이나 작은 실수를 감추려 할 수 있어 심리적 안전감과 검수 병행",
+          "구두 보고만 믿기보다 공정 중간 단계에서 실물 품질 검수를 진행할 것"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[은폐 주의] 불량·실수 발생 시 임의 은폐 소지, 공정 단계별 교차 검수 필수",
+          "[허위보고 경계] 작업 진척도 과장 및 책임 회피 우려, 철저한 실물 확인 요망",
+          "[신뢰도 주의] 과실 축소·변명 경향 감지, 명확한 작업 이력 기록 관리 필요"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "S1":
-      if (score >= 90) return { desc: "보호구 착용 및 안전 절차 철저 준수, 현장 안전 수칙의 엄격한 자율 실행", tag: "안전우수", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false };
-      if (isHigh) return { desc: "안전 장구 완벽 착용 및 안전 규칙 준수, 사고 예방 의식 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "기본 안전장구 착용 양호, 작업 속도 압박 시 안전 절차 생략 방지 지도", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[안전과락 🚨] 보호구 미착용 및 안전 불감증 우려, 즉각적인 안전 통제 필수", tag: "과락", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true };
+    case "S1": // 안전수칙
+      if (score >= 95) return {
+        desc: pick([
+          "안전모·안전벨트 100% 체결 및 4대 골든룰을 자율 실천하는 안전 모범 인력",
+          "밀폐·고소·화기 작업 전 안전 허가 수칙을 철저히 준수하는 무재해 파수꾼",
+          "감독자 유무와 무관하게 개인보호구 착용과 안전 절차를 완벽히 체질화함"
+        ]),
+        tag: "안전우수", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "보호구 착용 및 안전 절차 철저 준수, 현장 안전 수칙의 엄격한 자율 실행",
+          "TBM 안전 지시사항을 즉시 현장에 적용하며 위험한 지름길 작업을 거부함",
+          "고소 족장 안전고리 체결 및 방진·방독 마스크 착용 습관이 매우 확고함"
+        ]),
+        tag: "안전우수", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "안전 장구 완벽 착용 및 기본 안전 규칙 준수, 현장 사고 예방 의식 우수",
+          "작업 전 안전 점검에 적극 동참하며 정해진 안전 통로와 수칙을 잘 지킴",
+          "보호구 착용 상태가 양호하고 관리자의 안전 지적을 즉각 수용·시정함"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "기본 보호구 착용 양호, 납기 압박 시 안전 절차 생략 없도록 지속 환기",
+          "안전 규정 인지는 무난하나 더위·답답함으로 보호구 해이해지지 않게 점검",
+          "통상적 안전 수칙은 준수하나 반복 작업 시 방심하지 않도록 일일 TBM 강조"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "안전 기준선은 통과했으나 작업 편의를 위해 안전고리 미체결 등 불시 점검 요망",
+          "수칙 중요성은 아나 실천이 다소 수동적이므로 반장의 현장 순찰 지도 필수",
+          "익숙한 공정에서 안전 장구 착용을 소홀히 할 수 있어 시작 전 맞점검 권장"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[안전과락 🚨] 보호구 미착용 및 안전불감증 심각, 고위험 투입 금지·재교육 필수",
+          "[안전과락 🚨] 안전 수칙 경시 및 임의 작업 위험 높음, 밀착 통제 및 특별 관리",
+          "[안전과락 🚨] 중대재해 유발 우려가 큰 안전 의식 미달, 단독 작업 절대 배제"
+        ]),
+        tag: "과락", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true
+      };
 
-    case "S2":
-      if (score >= 90) return { desc: "작업장 주변 위험 요인 사전 감지 및 능동적 예방, 방어적 작업 습관 체화", tag: "위험예지", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false };
-      if (isHigh) return { desc: "협착/낙하/화재 위험요인 사전 식별 우수, 신속하고 적절한 위험 회피", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "돌발 위험 대처 무난, 복잡·고위험 구역 투입 시 사전 안전 브리핑 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[위험인지 지체 🚨] 위험 상황 식별 미흡, 단독 고위험 구역 투입 금지 요망", tag: "과락", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true };
+    case "S2": // 위험인지
+      if (score >= 95) return {
+        desc: pick([
+          "크레인 인양·밀폐구역·화기 주변 잠재 위험을 즉시 간파하고 선제 예방함",
+          "작업장 주변 이상 징후(가스·불티·족장 불량) 감지력이 탁월한 방어적 작업자",
+          "돌발 위험 상황 시 즉각 작업중지권을 행사하고 동료를 대피시키는 판단력"
+        ]),
+        tag: "위험예지", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "작업장 주변 위험 요인 사전 감지 및 능동적 예방, 방어적 작업 습관 체화",
+          "협착·추락·낙하물 위험 반경을 사전에 파악하여 안전 거리를 철저히 확보함",
+          "위험 예지 훈련(KYT) 이해도가 높고 복합 공정 간 간섭 위험을 잘 식별함"
+        ]),
+        tag: "위험예지", tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "협착·낙하·화재 위험요인 사전 식별 우수, 신속하고 적절한 위험 회피 행동",
+          "작업 환경의 변화를 주의 깊게 살피며 위험 구역 접근을 스스로 경계함",
+          "비상 대피 경로와 소화기 위치 등 현장 안전 시설을 숙지하고 침착히 대응함"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "일반적 위험 인지는 무난, 선각 블록 내부·밀폐구역 투입 전 위험요소 브리핑 권장",
+          "눈에 보이는 위험은 회피하나 상하 동시 작업 등 복합 위험은 사전 고지 필요",
+          "돌발 상황 대처는 보통 수준으로, 신규 작업장 이동 시 위험 포인트 안내 요망"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "작업 몰두 시 주변 크레인·지게차 이동 인지 지연 소지, 2인 1조 신호수 동행 권장",
+          "잠재 위험 식별이 다소 둔감할 수 있어 고소·밀폐 작업 시 사수 동반 배치 필요",
+          "비상 상황 시 당황할 수 있으므로 픽토그램 안전 표지 및 비상 신호 반복 숙지"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[위험인지 과락 🚨] 위험 상황 식별 심각 미흡, 고소·밀폐·단독 작업 투입 절대 금지",
+          "[위험인지 과락 🚨] 주변 위험 요소 무감각 및 부주의 우려, 상시 감시자 배치 필수",
+          "[위험인지 과락 🚨] 돌발 위험 대처 능력 결여, 저위험 단순 공정 제한 배치 및 재검증"
+        ]),
+        tag: "과락", tagColor: "bg-red-100 text-red-700 border-red-300", isCrit: true
+      };
 
-    case "T1":
-      if (score >= 90) return { desc: "팀원 간 능동적 협업 및 지원, 원활한 공동 작업 수행과 상호 존중", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "동료와의 협조 태도 양호, 공동 목표 달성을 위한 솔선수범", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "팀 단위 공동 작업 무난히 소화, 다국적 동료 간 배려 및 소통 장려", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[개인주의 성향] 공동 작업 기여도 미흡, 팀워크 협조 분위기 조성 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "T1": // 협력태도
+      if (score >= 95) return {
+        desc: pick([
+          "한국인 기장·다국적 동료와 완벽히 호흡하며 팀 공동 작업을 이끄는 협업 핵심",
+          "동료의 작업 고충을 먼저 돕고 2인 1조 및 분임조 작업에서 최고의 시너지 발휘",
+          "상호 존중과 적극적 지원 태도로 현장 팀 분위기를 밝고 활기차게 주도함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "팀원 간 능동적 협업 및 지원, 원활한 공동 작업 수행과 상호 존중 태도 탁월",
+          "공동 자재 운반·블록 정합 등 협동 공정에서 솔선수범하며 원만하게 융화됨",
+          "본인 작업 완료 후 지체된 동료 구간을 자발적으로 지원하는 높은 협동심"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "동료와의 협조 태도 양호, 팀 공동 목표 달성을 위해 성실히 호흡을 맞춤",
+          "타 국적 작업자들과도 편견 없이 어울리며 현장 협업 지시를 잘 수행함",
+          "분임조 내 역할 분담을 명확히 수용하고 동료와 원활하게 손발을 맞춤"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "팀 단위 공동 작업 무난히 소화, 다국적 동료 간 적극적 의사소통 장려 권장",
+          "지시받은 협업 과업은 수행하나 먼저 나서기보다 수동적으로 협조하는 편임",
+          "친숙한 동료와는 잘 협력하나 타 공정·타 국적 작업자와는 교류 확대 필요"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "단독 작업 선호 경향이 다소 있어, 2인 1조 협업 시 명확한 역할 구분이 필요함",
+          "동료 지원에 다소 소극적일 수 있으므로 공동 목표 의식 고취 및 팀 융화 유도",
+          "소통 부족으로 협업 타이밍이 어긋날 수 있어 작업 전 신호 체계 사전 합의 권장"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[개인주의 주의] 공동 작업 회피 및 협조 미흡, 팀워크 마찰 방지를 위한 관리 필요",
+          "[협업부족 경계] 독단적 작업 성향으로 팀 호흡 저해 우려, 명확한 역할 통제 요망",
+          "[융화미흡 주의] 동료 간 배려 부족 및 고립 우려, 초기 팀 적응 밀착 모니터링"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "T2":
-      if (score >= 90) return { desc: "의견 대립 시 유연하고 성숙한 조율 능력 발휘, 다문화 동료와의 화합력 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "현장 마찰 발생 시 원만한 해결 노력, 타인의 의견 경청 및 수용", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "갈등 발생 시 마찰 회피 경향, 반장/직장의 중재를 통한 원만한 해소 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[현장마찰 주의] 의견 충돌 시 감정 대립 또는 소통 단절, 밀착 중재 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "T2": // 갈등관리
+      if (score >= 95) return {
+        desc: pick([
+          "언어·문화 차이로 인한 오해를 성숙하게 풀어내며 다국적 팀 내 중재자 역할 수행",
+          "작업 방식 이견 발생 시 감정 대립 없이 반장 중재와 타협을 이끄는 포용력",
+          "현장 및 기숙사 내 동료 간 사소한 마찰도 원만하게 포용하는 탁월한 친화력"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "의견 대립 시 유연하고 성숙한 조율 능력 발휘, 다문화 동료와의 화합력 탁월",
+          "상대방의 입장을 경청하고 양보할 줄 알아 현장 내 대인 관계 마찰이 전무함",
+          "거친 현장 분위기 속에서도 예의를 지키며 원만한 팀 인간관계를 유지함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "현장 마찰 발생 시 원만한 해결 노력, 타인의 의견 경청 및 수용 태도 우수",
+          "동료나 상급자와의 이견을 대화로 풀어가며 불필요한 감정 소모를 자제함",
+          "다문화 집단 생활에서 규칙을 존중하고 타인을 배려하여 갈등 유발이 적음"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "갈등 시 대립보다 침묵·회피 경향, 오해가 쌓이지 않게 반장의 주기적 소통 권장",
+          "평소 관계는 무난하나 작업 간섭 발생 시 공정장이 작업 경계를 명확히 조율할 것",
+          "문화적 차이로 인한 서운함을 내색하지 않을 수 있어 정기 고충 면담이 유익함"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "의견 충돌 시 고집을 부리거나 위축될 수 있어, 반장의 즉각적인 중재 개입 필요",
+          "직설적 지적에 방어적일 수 있으므로 작업 교정 시 시범 위주의 코칭이 효과적",
+          "특정 국적·동료끼리만 뭉치지 않도록 공정 배치 시 인력 조합에 유의할 것"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[현장마찰 주의] 의견 충돌 시 감정 대립·소통 단절 우려, 반장의 밀착 중재 필수",
+          "[대인갈등 경계] 지적 수용성 부족 및 동료 마찰 소지, 온화하고 명확한 지시 요망",
+          "[불화요인 주의] 다문화 집단 생활 및 작업장 내 언쟁 우려, 사전 갈등 예방 관리"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "E1":
-      if (score >= 90) return { desc: "압박 상황에서도 평정심 유지, 충동적 언행 제어 및 감정 통제력 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "작업 중 감정적 동요 적음, 침착하고 안정적인 태도로 업무 진행", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "일반적 정서 통제력 유지, 고강도 연속 작업 시 감정적 피로도 관리 요망", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[감정조절 주의] 불만이나 흥분 시 감정 통제 저하 우려, 온화한 면담 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "E1": // 감정조절
+      if (score >= 95) return {
+        desc: pick([
+          "돌발 공정 지연이나 강한 압박 속에서도 흔들림 없는 평정심과 침착성 유지",
+          "거친 현장 어투나 긴박한 상황에서도 감정적 동요 없이 냉철하게 작업 수행",
+          "자기 통제력이 매우 뛰어나 충동적 행동이나 안전 실수를 일절 유발하지 않음"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "압박 상황에서도 평정심 유지, 충동적 언행 제어 및 정서적 통제력 탁월",
+          "감정 기복이 거의 없어 매일 일관된 작업 품질과 안정적인 안전 태도를 보임",
+          "상급자의 엄격한 피드백에도 감정적으로 반응하지 않고 침착하게 수용함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "작업 중 감정적 동요 적음, 침착하고 안정적인 태도로 현장 업무 진행",
+          "스트레스 상황에서도 화를 내거나 당황하지 않고 차분히 본연의 업무에 집중함",
+          "정서적 안정감이 양호하여 주변 동료들에게도 편안하고 차분한 인상을 줌"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "일반적 정서 통제력 유지, 혹서·혹한 및 연속 잔업 시 감정적 피로도 배려 요망",
+          "평소에는 차분하나 작업 재수정 요구가 반복될 때 사기 저하 방지 격려 권장",
+          "보통 수준의 감정 조절력을 지녔으며, 공개 질책보다 1:1 피드백이 효과적임"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "납기 독촉이나 피로 누적 시 다소 예민해질 수 있어 작업 완급 조절 및 휴식 지도",
+          "언어 소통 답답함으로 위축되거나 조급해질 수 있으니 천천히 명확하게 지시할 것",
+          "감정 기복이 작업 부주의로 이어지지 않도록 일일 조회 시 표정·컨디션 확인 권장"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[감정조절 주의] 불만·흥분 시 충동적 언행 및 작업 거칠어짐 우려, 온화한 면담 필수",
+          "[정서불안 경계] 압박 상황에서 감정 통제 저하 및 부주의 사고 위험, 세심한 관리",
+          "[충동성 주의] 급한 성격이나 감정 기복으로 인한 현장 트러블 주의, 멘토 밀착 케어"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "E2":
-      if (score >= 90) return { desc: "작업 부하 및 스트레스에 대한 회복탄력성 우수, 지속적인 지구력 발휘", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "고강도 환경 적응력 양호, 어려운 상황에서도 포기하지 않고 인내", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "표준적 스트레스 감내도, 기후/환경 변화 및 교대근무 적응 여부 모니터링", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[번아웃 위험] 환경 부적응 및 조기 이탈 위험성, 고충 상담 지속 지원 필요", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "E2": // 인내심
+      if (score >= 95) return {
+        desc: pick([
+          "옥외 고강도 육체노동 및 혹서·혹한 환경에서도 지치지 않는 강인한 정신력과 끈기",
+          "장시간 반복 용접·그라인딩·도장 작업에서도 끝까지 집중력을 잃지 않는 지구력",
+          "높은 회복탄력성으로 타국 생활의 고충과 작업 부하를 거뜬히 이겨내는 강인함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "작업 부하 및 스트레스에 대한 회복탄력성 우수, 지속적인 직무 지구력 발휘",
+          "힘든 선각·블록 공정에서도 중도 포기나 불평 없이 묵묵히 과업을 돌파함",
+          "육체적·정신적 스트레스 내성이 강해 장기 근속 및 안정적 현장 정착이 기대됨"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "고강도 현장 환경 적응력 양호, 어려운 작업 여건에서도 포기하지 않고 인내함",
+          "조선소 특유의 소음·분진·고열 환경을 잘 감내하며 꾸준한 작업 페이스를 유지함",
+          "스트레스를 건전하게 해소하며 타국 근무 환경에서도 흔들림 없이 성실히 근무함"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "표준적 스트레스 감내도 보유, 계절별 기후 변화 및 초과근무 적응 여부 모니터링",
+          "일반 공정 부하는 무난히 견디나 고난도 작업 연속 배정 시 적절한 휴식 안배 권장",
+          "초기 향수병이나 체력 저하가 오지 않도록 입국 후 1~3개월 차 생활 면담이 유익함"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "장시간 고강도 작업 시 피로 호소 가능성, 단계적으로 작업 강도를 높여갈 것",
+          "스트레스 누적 시 의욕이 저하될 수 있어 작은 성취에도 긍정적 격려가 필요함",
+          "밀폐·협소 구역 장기 작업 시 답답함을 느낄 수 있으므로 순환 작업 배치를 권장"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[번아웃 위험] 고강도 환경 부적응 및 조기 이탈 우려, 작업 강도 조절·고충 상담 필수",
+          "[지구력 부족] 직무 스트레스 취약 및 중도 포기 위험, 초기 정착 집중 케어 요망",
+          "[이탈방지 주의] 육체적·심리적 피로 감내력 저조, 멘토 배정 및 정기 고충 해소 필요"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "A1":
-      if (score >= 90) return { desc: "신규 공정 및 장비 조작 신속 습득, 작업 지침 이해도와 실행력 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "새로운 기술 및 지침 습득 빠름, 작업 노하우 응용력 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "기본 기술 습득 양호, 조선소 특화 공정 투입 시 반복 시연 및 숙달 요망", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[학습지체 주의] 작업 지시 이해 지연 가능성, 시각적 작업표준서 활용 필수", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "A1": // 학습능력
+      if (score >= 95) return {
+        desc: pick([
+          "선박 도면·작업표준서 및 신규 장비 조작법을 즉각 흡수하여 응용하는 탁월한 습득력",
+          "한국어 현장 용어와 선종별 특수 기법을 빠르게 익혀 단기간 내 숙련공 성장 기대",
+          "한 번 교육받은 안전·품질 지침을 완벽히 숙지하여 현장에 즉시 구현하는 영민함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "신규 공정 및 장비 조작 신속 습득, 작업 지침 이해도와 현장 실행력 탁월",
+          "사수의 시범 작업을 주의 깊게 관찰하여 핵심 요령을 빠르게 본인의 것으로 만듦",
+          "새로운 블록 구조나 변경된 도면 지시도 막힘없이 이해하고 정확하게 작업함"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "새로운 기술 및 작업 지침 습득 빠름, 현장 작업 노하우 이해 및 응용력 우수",
+          "기초 직무 교육 및 OJT 내용을 잘 소화하며 현장 용어 습득 속도가 양호함",
+          "모르는 부분은 적극적으로 질문하여 배우려는 학습 열의와 직무 수용성이 좋음"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "기본 기능 습득 양호, 현대삼호 특화 공정 투입 시 1~2회 시범 시연 후 작업 권장",
+          "일상적 작업 지시는 무난히 이해하나 복잡한 도면·치수 작업은 재확인 절차 필요",
+          "실기 위주 반복 숙달 시 안정적 성과가 기대되며 시청각 매뉴얼 병행이 효과적임"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "구두 설명만으로는 지시 오해 소지가 있어, 샘플 시연 및 모국어 작업표준서 활용 권장",
+          "신규 공법 습득에 다소 시간이 걸리므로 초기에는 정형화된 단일 공정 배치가 유리함",
+          "이해하지 못해도 '알겠다'고 답할 수 있어 작업 착수 초기 10분간 수행 상태 확인 필수"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[학습지체 주의] 작업 지시 이해 지연 및 오작업 우려, 시각 매뉴얼·시범 교육 필수",
+          "[숙달지연 경계] 신규 장비·도면 해독 미흡 가능성, 단순 공정 배치 및 반복 OJT 요망",
+          "[소통오류 주의] 지시 내용 임의 해석 위험, 작업 전후 사수의 1:1 확인 점검 필수"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
-    case "A2":
-      if (score >= 90) return { desc: "조선소 현장 규율 및 조직 문화 빠른 체득, 관리자와의 신뢰 관계 구축 탁월", tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false };
-      if (isHigh) return { desc: "회사 방침 및 현장 환경 적극 적응, 조직 내 융화력 우수", tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false };
-      if (!isLow) return { desc: "현장 생활 적응 양호, 한국어 및 현장 소통 능력 향상 지원 권장", tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };
-      return { desc: "[조직부적응 주의] 집단 생활 및 조선소 환경 부적응 우려, 전담 멘토 배정 필수", tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false };
+    case "A2": // 조직적응
+      if (score >= 95) return {
+        desc: pick([
+          "한국 조선소 위계질서와 현장 문화를 빠르게 체득하고 반장·동료와 두터운 신뢰 구축",
+          "기숙사 공동생활 및 사내 식당·통근버스 등 한국 생활 환경에 완벽히 융화되는 친화력",
+          "높은 타문화 수용성과 긍정적 마인드로 신입 외국인 근로자들의 현장 정착 롤모델이 됨"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 90) return {
+        desc: pick([
+          "조선소 현장 규율 및 조직 문화 빠른 체득, 관리자와의 신뢰 관계 구축 탁월",
+          "한국식 작업 지시 문화와 팀 분위기를 존중하며 이질감 없이 현장에 빠르게 녹아듦",
+          "생활 환경 변화에 대한 적응력이 뛰어나 초기 이탈 위험 없이 안정적 정착 기대"
+        ]),
+        tag: "최우수", tagColor: "bg-indigo-50 text-indigo-700 border-indigo-200", isCrit: false
+      };
+      if (score >= 80) return {
+        desc: pick([
+          "회사 방침 및 현장 환경 적극 적응, 한국인 관리자 및 조직 내 융화력 우수",
+          "기숙사 규율과 현장 예절을 잘 지키며 한국 생활 및 음식·기후에 무난히 적응함",
+          "소속감과 직장 애착심이 양호하여 성실하게 장기 근속할 가능성이 높은 인력"
+        ]),
+        tag: "우수", tagColor: "bg-blue-50 text-blue-700 border-blue-200", isCrit: false
+      };
+      if (score >= 70) return {
+        desc: pick([
+          "현장 생활 적응 양호, 초기 한국어 소통 지원 및 동일 국적 선배 멘토링 연결 권장",
+          "기본 조직 순응도는 무난하나 낯선 환경 긴장 해소를 위해 반장의 따뜻한 관심 필요",
+          "작업장 적응은 양호하며 기숙사 생활이나 식습관 등 초기 정착 애로사항만 점검 요망"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      if (score >= 60) return {
+        desc: pick([
+          "한국 조선소 특유의 빠른 작업 템포에 긴장할 수 있어 초기 4주간 온보딩 배려 필요",
+          "언어 장벽으로 인해 소외감을 느끼지 않도록 현장 픽토그램 및 통역 앱 활용 권장",
+          "문화적 차이로 인한 오해 방지를 위해 한국 현장 예절과 안전 문화를 친절히 안내할 것"
+        ]),
+        tag: "보통", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false
+      };
+      return {
+        desc: pick([
+          "[조직부적응 주의] 집단 생활 및 한국 조선소 환경 부적응 우려, 전담 멘토 배정 필수",
+          "[초기이탈 경계] 문화·언어 장벽으로 인한 고립 위험, 입국 초기 밀착 상담 및 케어",
+          "[현장융화 주의] 조직 규율 및 위계 적응 지연 소지, 동일 국적 우수 선배와 페어링 필수"
+        ]),
+        tag: "주의", tagColor: "bg-amber-50 text-amber-700 border-amber-200", isCrit: false
+      };
 
     default:
       return { desc: "현장 작업 수행 양호", tag: "양호", tagColor: "bg-slate-100 text-slate-700 border-slate-200", isCrit: false };

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -26,6 +26,22 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
   const [aiText, setAiText] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
 
+  const cacheKey = `hd_ai_report_v2_${formatCandidateId(data.id)}_${formatCandidateName(data.name)}_${data.total}`;
+
+  useEffect(() => {
+    setErrorMsg("");
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        setAiText(cached);
+      } else {
+        setAiText("");
+      }
+    } catch {
+      setAiText("");
+    }
+  }, [cacheKey]);
+
   const handleGenerateAIReport = async () => {
     setLoading(true);
     setErrorMsg("");
@@ -43,7 +59,15 @@ export const AIReport: React.FC<AIReportProps> = ({ data, onScaleUpdate }) => {
         throw new Error(resJson.message || "AI 리포트 생성에 실패했습니다.");
       }
 
-      setAiText(resJson.text || "");
+      const generated = resJson.text || "";
+      setAiText(generated);
+      try {
+        if (generated) {
+          localStorage.setItem(cacheKey, generated);
+        }
+      } catch {
+        // Ignore storage quota issues
+      }
       
       // Trigger scaling adjustments if necessary
       setTimeout(() => {
